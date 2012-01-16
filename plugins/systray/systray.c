@@ -54,6 +54,8 @@ static void     systray_plugin_orientation_changed          (XfcePanelPlugin    
                                                              GtkOrientation         orientation);
 static gboolean systray_plugin_size_changed                 (XfcePanelPlugin       *panel_plugin,
                                                              gint                   size);
+static void     systray_plugin_nrows_changed                (XfcePanelPlugin       *panel_plugin,
+                                                             guint                  nrows);
 static void     systray_plugin_configure_plugin             (XfcePanelPlugin       *panel_plugin);
 static void     systray_plugin_box_expose_event             (GtkWidget             *box,
                                                              GdkEventExpose        *event);
@@ -172,6 +174,7 @@ systray_plugin_class_init (SystrayPluginClass *klass)
   plugin_class->construct = systray_plugin_construct;
   plugin_class->free_data = systray_plugin_free_data;
   plugin_class->size_changed = systray_plugin_size_changed;
+  plugin_class->nrows_changed = systray_plugin_nrows_changed;
   plugin_class->configure_plugin = systray_plugin_configure_plugin;
   plugin_class->orientation_changed = systray_plugin_orientation_changed;
 
@@ -542,6 +545,17 @@ systray_plugin_size_changed (XfcePanelPlugin *panel_plugin,
   systray_box_set_size_alloc (XFCE_SYSTRAY_BOX (plugin->box), size - 2 * border);
 
   return TRUE;
+}
+
+
+
+static void
+systray_plugin_nrows_changed (XfcePanelPlugin *panel_plugin,
+                              guint            nrows)
+{
+  SystrayPlugin *plugin = XFCE_SYSTRAY_PLUGIN (panel_plugin);
+
+  systray_box_set_nrows (XFCE_SYSTRAY_BOX (plugin->box), (gint) nrows);
 }
 
 

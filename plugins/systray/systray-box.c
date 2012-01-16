@@ -100,6 +100,9 @@ struct _SystrayBox
 
   /* allocated size by the plugin */
   gint          size_alloc;
+
+  /* (minimum) number of rows */
+  gint          nrows;
 };
 
 
@@ -147,6 +150,7 @@ systray_box_init (SystrayBox *box)
   box->childeren = NULL;
   box->size_max = SIZE_MAX_DEFAULT;
   box->size_alloc = SIZE_MAX_DEFAULT;
+  box->nrows = 1;
   box->n_hidden_childeren = 0;
   box->n_visible_children = 0;
   box->horizontal = TRUE;
@@ -222,6 +226,8 @@ systray_box_size_get_max_child_size (SystrayBox *box,
 
       break;
     }
+
+  rows = MAX (rows, box->nrows);
 
   row_size = (alloc_size - (rows - 1) * SPACING) / rows;
   row_size = MIN (box->size_max, row_size);
@@ -389,7 +395,7 @@ systray_box_size_allocate (GtkWidget     *widget,
   gdouble         ratio;
   gint            x, x_start, x_end;
   gint            y, y_start, y_end;
-  gint            offset;
+  gint            offset = 0;
   GSList         *li;
   gint            alloc_size;
   gint            idx;
@@ -400,7 +406,7 @@ systray_box_size_allocate (GtkWidget     *widget,
 
   alloc_size = box->horizontal ? allocation->height : allocation->width;
 
-  systray_box_size_get_max_child_size (box, alloc_size, &rows, &row_size, &offset);
+  systray_box_size_get_max_child_size (box, alloc_size, &rows, &row_size, NULL);
 
   panel_debug_filtered (PANEL_DEBUG_SYSTRAY, "allocate rows=%d, row_size=%d, w=%d, h=%d, horiz=%s, border=%d",
                         rows, row_size, allocation->width, allocation->height,
@@ -454,7 +460,7 @@ systray_box_size_allocate (GtkWidget     *widget,
             {
               ratio = (gdouble) child_req.width / (gdouble) child_req.height;
 
-              if (box->horizontal)
+              if (!box->horizontal)
                 {
                   child_alloc.height = row_size;
                   child_alloc.width = row_size * ratio;
@@ -492,8 +498,8 @@ systray_box_size_allocate (GtkWidget     *widget,
               ratio = 1.00;
             }
 
-          if ((box->horizontal && x + child_alloc.width > x_end)
-              || (!box->horizontal && y + child_alloc.height > y_end))
+          if ((!box->horizontal && x + child_alloc.width > x_end)
+              || (box->horizontal && y + child_alloc.height > y_end))
             {
               if (ratio >= 2
                   && li->next != NULL)
@@ -508,7 +514,7 @@ systray_box_size_allocate (GtkWidget     *widget,
                   goto restart_allocation;
                 }
 
-              if (box->horizontal)
+              if (!box->horizontal)
                 {
                   x = x_start;
                   y += row_size + SPACING;
@@ -549,7 +555,7 @@ systray_box_size_allocate (GtkWidget     *widget,
           child_alloc.x += x;
           child_alloc.y += y;
 
-          if (box->horizontal)
+          if (!box->horizontal)
             x += row_size * ratio + SPACING;
           else
             y += row_size * ratio + SPACING;
@@ -734,6 +740,23 @@ systray_box_set_size_alloc (SystrayBox *box,
   if (G_LIKELY (size_alloc != box->size_alloc))
     {
       box->size_alloc = size_alloc;
+
+      if (box->childeren != NULL)
+        gtk_widget_queue_resize (GTK_WIDGET (box));
+    }
+}
+
+
+
+void
+systray_box_set_nrows (SystrayBox *box,
+                       gint        nrows)
+{
+  panel_return_if_fail (XFCE_IS_SYSTRAY_BOX (box));
+
+  if (G_LIKELY (nrows != box->nrows))
+    {
+      box->nrows = nrows;
 
       if (box->childeren != NULL)
         gtk_widget_queue_resize (GTK_WIDGET (box));
