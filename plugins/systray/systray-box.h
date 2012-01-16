@@ -51,6 +51,9 @@ gint       systray_box_get_size_max    (SystrayBox          *box);
 void       systray_box_set_size_alloc  (SystrayBox          *box,
                                         gint                 size_alloc);
 
+void       systray_box_set_nrows       (SystrayBox          *box,
+                                        gint                 nrows);
+
 void       systray_box_set_show_hidden (SystrayBox          *box,
                                         gboolean             show_hidden);
 
