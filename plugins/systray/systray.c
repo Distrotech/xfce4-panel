@@ -50,8 +50,8 @@ static void     systray_plugin_set_property                 (GObject            
                                                              GParamSpec            *pspec);
 static void     systray_plugin_construct                    (XfcePanelPlugin       *panel_plugin);
 static void     systray_plugin_free_data                    (XfcePanelPlugin       *panel_plugin);
-static void     systray_plugin_orientation_changed          (XfcePanelPlugin       *panel_plugin,
-                                                             GtkOrientation         orientation);
+static void     systray_plugin_mode_changed                 (XfcePanelPlugin       *panel_plugin,
+                                                             XfcePanelPluginMode    mode);
 static gboolean systray_plugin_size_changed                 (XfcePanelPlugin       *panel_plugin,
                                                              gint                   size);
 static void     systray_plugin_nrows_changed                (XfcePanelPlugin       *panel_plugin,
@@ -176,7 +176,7 @@ systray_plugin_class_init (SystrayPluginClass *klass)
   plugin_class->size_changed = systray_plugin_size_changed;
   plugin_class->nrows_changed = systray_plugin_nrows_changed;
   plugin_class->configure_plugin = systray_plugin_configure_plugin;
-  plugin_class->orientation_changed = systray_plugin_orientation_changed;
+  plugin_class->mode_changed = systray_plugin_mode_changed;
 
   g_object_class_install_property (gobject_class,
                                    PROP_SIZE_MAX,
@@ -393,8 +393,8 @@ systray_plugin_screen_changed_idle (gpointer user_data)
   if (systray_manager_register (plugin->manager, screen, &error))
     {
       /* send the plugin orientation */
-      systray_plugin_orientation_changed (XFCE_PANEL_PLUGIN (plugin),
-         xfce_panel_plugin_get_orientation (XFCE_PANEL_PLUGIN (plugin)));
+      systray_plugin_mode_changed (XFCE_PANEL_PLUGIN (plugin),
+         xfce_panel_plugin_get_mode (XFCE_PANEL_PLUGIN (plugin)));
     }
   else
     {
@@ -503,18 +503,28 @@ systray_plugin_free_data (XfcePanelPlugin *panel_plugin)
 
 
 static void
-systray_plugin_orientation_changed (XfcePanelPlugin *panel_plugin,
-                                    GtkOrientation   orientation)
+systray_plugin_mode_changed (XfcePanelPlugin    *panel_plugin,
+                             XfcePanelPluginMode mode)
 {
   SystrayPlugin *plugin = XFCE_SYSTRAY_PLUGIN (panel_plugin);
+  GtkOrientation panel_orientation;
+  GtkOrientation orientation;
 
-  xfce_hvbox_set_orientation (XFCE_HVBOX (plugin->hvbox), orientation);
-  systray_box_set_orientation (XFCE_SYSTRAY_BOX (plugin->box), orientation);
+  orientation =
+    (mode != XFCE_PANEL_PLUGIN_MODE_VERTICAL) ?
+    GTK_ORIENTATION_HORIZONTAL : GTK_ORIENTATION_VERTICAL;
+
+  panel_orientation =
+    (mode == XFCE_PANEL_PLUGIN_MODE_HORIZONTAL) ?
+    GTK_ORIENTATION_HORIZONTAL : GTK_ORIENTATION_VERTICAL;
+
+  xfce_hvbox_set_orientation (XFCE_HVBOX (plugin->hvbox), panel_orientation);
+  systray_box_set_orientation (XFCE_SYSTRAY_BOX (plugin->box), panel_orientation);
 
   if (G_LIKELY (plugin->manager != NULL))
     systray_manager_set_orientation (plugin->manager, orientation);
 
-  if (orientation == GTK_ORIENTATION_HORIZONTAL)
+  if (panel_orientation == GTK_ORIENTATION_HORIZONTAL)
     gtk_widget_set_size_request (plugin->button, BUTTON_SIZE, -1);
   else
     gtk_widget_set_size_request (plugin->button, -1, BUTTON_SIZE);
