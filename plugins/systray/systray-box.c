@@ -435,6 +435,11 @@ systray_box_size_allocate (GtkWidget     *widget,
   gint            alloc_size;
   gint            idx;
 
+  /* Performance optimization. The allocation size is checked in detail below. */
+  /* This is just a fast path for some obvious cases, which occur during start-up. */
+  if (allocation->width < 10 || allocation->height < 10)
+    return;
+
   widget->allocation = *allocation;
 
   border = GTK_CONTAINER (widget)->border_width;
@@ -444,10 +449,10 @@ systray_box_size_allocate (GtkWidget     *widget,
   systray_box_size_get_max_child_size (box, alloc_size, &rows, &row_size, &icon_size);
 
   alloc_size = (box->horizontal ? allocation->width : allocation->height) - 2 * border;
-  cols = ceil ((gdouble) (alloc_size - row_size) / (gdouble) (row_size + SPACING)) + 1;
+  cols = floor ((gdouble) (alloc_size - row_size) / (gdouble) (row_size + SPACING)) + 1;
 
-  panel_debug_filtered (PANEL_DEBUG_SYSTRAY, "allocate rows=%d, row_size=%d, w=%d, h=%d, horiz=%s, border=%d",
-                        rows, row_size, allocation->width, allocation->height,
+  panel_debug_filtered (PANEL_DEBUG_SYSTRAY, "allocate rows=%d, cols=%d, row_size=%d, w=%d, h=%d, horiz=%s, border=%d",
+                        rows, cols, row_size, allocation->width, allocation->height,
                         PANEL_DEBUG_BOOL (box->horizontal), border);
 
 
@@ -481,9 +486,11 @@ systray_box_size_allocate (GtkWidget     *widget,
   restart_allocation:
 
   slot = 0;
+  col = 0;
+
   g_slist_free (occupied_slots);
 
-  for (li = box->childeren; li != NULL; li = li->next)
+  for (li = box->childeren; li != NULL && col < cols; li = li->next)
     {
       child = GTK_WIDGET (li->data);
       panel_return_if_fail (XFCE_IS_SYSTRAY_SOCKET (child));
