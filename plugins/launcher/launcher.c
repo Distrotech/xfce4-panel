@@ -1713,6 +1713,14 @@ launcher_plugin_button_update (LauncherPlugin *plugin)
     {
       panel_return_if_fail (GTK_IS_LABEL (plugin->child));
       mode = xfce_panel_plugin_get_mode (XFCE_PANEL_PLUGIN (plugin));
+
+      /* disable the "small" property in the deskbar mode and the label visible */
+      if (mode == XFCE_PANEL_PLUGIN_MODE_DESKBAR &&
+          plugin->show_label)
+        xfce_panel_plugin_set_small (XFCE_PANEL_PLUGIN (plugin), FALSE);
+      else
+        xfce_panel_plugin_set_small (XFCE_PANEL_PLUGIN (plugin), TRUE);
+
       gtk_label_set_angle (GTK_LABEL (plugin->child),
                            (mode == XFCE_PANEL_PLUGIN_MODE_VERTICAL) ? 270 : 0);
       gtk_label_set_text (GTK_LABEL (plugin->child),
