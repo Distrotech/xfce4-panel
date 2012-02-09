@@ -1709,17 +1709,17 @@ launcher_plugin_button_update (LauncherPlugin *plugin)
   if (G_LIKELY (plugin->items != NULL))
     item = GARCON_MENU_ITEM (plugin->items->data);
 
+  mode = xfce_panel_plugin_get_mode (XFCE_PANEL_PLUGIN (plugin));
+
+  /* disable the "small" property in the deskbar mode and the label visible */
+  if (G_UNLIKELY (plugin->show_label && mode == XFCE_PANEL_PLUGIN_MODE_DESKBAR))
+    xfce_panel_plugin_set_small (XFCE_PANEL_PLUGIN (plugin), FALSE);
+  else
+    xfce_panel_plugin_set_small (XFCE_PANEL_PLUGIN (plugin), TRUE);
+
   if (G_UNLIKELY (plugin->show_label))
     {
       panel_return_if_fail (GTK_IS_LABEL (plugin->child));
-      mode = xfce_panel_plugin_get_mode (XFCE_PANEL_PLUGIN (plugin));
-
-      /* disable the "small" property in the deskbar mode and the label visible */
-      if (mode == XFCE_PANEL_PLUGIN_MODE_DESKBAR &&
-          plugin->show_label)
-        xfce_panel_plugin_set_small (XFCE_PANEL_PLUGIN (plugin), FALSE);
-      else
-        xfce_panel_plugin_set_small (XFCE_PANEL_PLUGIN (plugin), TRUE);
 
       gtk_label_set_angle (GTK_LABEL (plugin->child),
                            (mode == XFCE_PANEL_PLUGIN_MODE_VERTICAL) ? 270 : 0);
