@@ -142,6 +142,12 @@ static void         panel_window_plugin_set_nrows           (GtkWidget        *w
                                                              gpointer          user_data);
 static void         panel_window_plugin_set_screen_position (GtkWidget        *widget,
                                                              gpointer          user_data);
+static void         panel_window_check_struts               (PanelWindow      *window,
+                                                             gint              left,
+                                                             gint              right,
+                                                             gint             *top,
+                                                             gint             *bottom);
+
 
 
 
@@ -263,6 +269,8 @@ struct _PanelWindow
   StrutsEgde           struts_edge;
   gulong               struts[N_STRUTS];
   guint                struts_disabled : 1;
+  gint                 top_margin;
+  gint                 bottom_margin;
 
   /* window positioning */
   guint                size;
@@ -464,6 +472,8 @@ panel_window_init (PanelWindow *window)
   window->screen = NULL;
   window->struts_edge = STRUTS_EDGE_NONE;
   window->struts_disabled = FALSE;
+  window->top_margin = 0;
+  window->bottom_margin = 0;
   window->mode = XFCE_PANEL_PLUGIN_MODE_HORIZONTAL;
   window->size = 48;
   window->nrows = 1;
@@ -974,8 +984,8 @@ panel_window_motion_notify_event (GtkWidget      *widget,
   window_x = CLAMP (window_x, window->area.x, high);
 
   window_y = pointer_y - window->grab_y;
-  high = window->area.y + window->area.height - window->alloc.height;
-  window_y = CLAMP (window_y, window->area.y, high);
+  high = window->area.y + window->area.height - window->bottom_margin - window->alloc.height;
+  window_y = CLAMP (window_y, window->area.y + window->top_margin, high);
 
   /* update the grab coordinates */
   window->grab_x = pointer_x - window_x;
@@ -1159,6 +1169,10 @@ panel_window_size_request (GtkWidget      *widget,
   gint            length;
   gint            extra_width = 0, extra_height = 0;
   PanelBorders    borders;
+  gint            height, top, bottom;
+  GSList         *windows;
+  GSList         *li;
+  GdkRectangle   *alloc = &window->alloc;
 
   /* get the child requisition */
   if (GTK_BIN (widget)->child != NULL)
@@ -1201,8 +1215,20 @@ panel_window_size_request (GtkWidget      *widget,
       if (!window->length_adjust)
         requisition->height = extra_height;
 
-      length = window->area.height * window->length;
-      requisition->height = CLAMP (requisition->height, length, window->area.height);
+      windows = panel_application_get_windows (panel_application_get());
+
+      window->top_margin = window->bottom_margin = top = bottom = 0;
+      for (li = windows; li != NULL; li = li->next)
+        {
+          panel_window_check_struts (li->data, alloc->x, alloc->x + alloc->width, &top, &bottom);
+          window->top_margin = MAX (window->top_margin, top);
+          window->bottom_margin = MAX (window->bottom_margin, bottom);
+        }
+
+      height = window->area.height - window->top_margin - window->bottom_margin;
+      length = height * window->length;
+
+      requisition->height = CLAMP (requisition->height, length, height);
     }
 }
 
@@ -1380,8 +1406,8 @@ panel_window_size_allocate_set_xy (PanelWindow *window,
     case SNAP_POSITION_W:
       /* clamp base point on screen */
       value = window->base_y - (window_height / 2);
-      hight = window->area.y + window->area.height - window_height;
-      *return_y = CLAMP (value, window->area.y, hight);
+      hight = window->area.y + window->area.height - window->bottom_margin - window_height;
+      *return_y = CLAMP (value, window->area.y + window->top_margin, hight);
       break;
 
     case SNAP_POSITION_NE:
@@ -1389,7 +1415,7 @@ panel_window_size_allocate_set_xy (PanelWindow *window,
     case SNAP_POSITION_NC:
     case SNAP_POSITION_N:
       /* top */
-      *return_y = window->area.y;
+      *return_y = window->area.y + window->top_margin;
       break;
 
     case SNAP_POSITION_SE:
@@ -1397,13 +1423,13 @@ panel_window_size_allocate_set_xy (PanelWindow *window,
     case SNAP_POSITION_SC:
     case SNAP_POSITION_S:
       /* bottom */
-      *return_y = window->area.y + window->area.height - window_height;
+      *return_y = window->area.y + window->area.height - window->bottom_margin - window_height;
       break;
 
     case SNAP_POSITION_EC:
     case SNAP_POSITION_WC:
       /* center */
-      *return_y = window->area.y + (window->area.height - window_height) / 2;
+      *return_y = window->area.y + (window->area.height + window->top_margin - window->bottom_margin - window_height) / 2;
       break;
     }
 }
@@ -1543,6 +1569,8 @@ panel_window_screen_struts_set (PanelWindow *window)
   guint          i;
   gboolean       update_struts = FALSE;
   gint           n;
+  GSList        *windows;
+  GSList        *li;
   const gchar   *strut_border[] = { "left", "right", "top", "bottom" };
   const gchar   *strut_xy[] = { "y", "y", "x", "x" };
 
@@ -1621,6 +1649,11 @@ panel_window_screen_struts_set (PanelWindow *window)
   /* release the trap */
   if (gdk_error_trap_pop () != 0)
     g_critical ("Failed to set the struts");
+
+  /* resize other panels */
+  windows = panel_application_get_windows (panel_application_get());
+  for (li = windows; li != NULL; li = li->next)
+    gtk_widget_queue_resize (GTK_WIDGET (li->data));
 
   if (panel_debug_has_domain (PANEL_DEBUG_YES))
     {
@@ -1755,8 +1788,8 @@ panel_window_snap_position (PanelWindow *window)
   /* get the snap offsets */
   snap_horz = panel_window_snap_edge_gravity (alloc->x, window->area.x,
       window->area.x + window->area.width - alloc->width);
-  snap_vert = panel_window_snap_edge_gravity (alloc->y, window->area.y,
-      window->area.y + window->area.height - alloc->height);
+  snap_vert = panel_window_snap_edge_gravity (alloc->y, window->area.y + window->top_margin,
+      window->area.y + window->area.height - window->bottom_margin - alloc->height);
 
   /* detect the snap mode */
   if (snap_horz == EDGE_GRAVITY_START)
@@ -2759,4 +2792,30 @@ panel_window_focus (PanelWindow *window)
   /* our best guess on non-x11 clients */
   gtk_window_present (GTK_WINDOW (window));
 #endif
+}
+
+
+
+#define IN_RANGE(x, low, high) (((x) >= (low) && (x) <= (high)))
+
+static void
+panel_window_check_struts (PanelWindow *window,
+                           gint         left,
+                           gint         right,
+                           gint        *top,
+                           gint        *bottom)
+{
+  panel_return_if_fail (PANEL_IS_WINDOW (window));
+
+  if (IS_HORIZONTAL (window) && window->struts_disabled == FALSE)
+    {
+      if (window->struts_edge == STRUTS_EDGE_TOP &&
+          (IN_RANGE (left, window->struts[STRUT_TOP_START_X], window->struts[STRUT_TOP_END_X]) ||
+           IN_RANGE (right, window->struts[STRUT_TOP_START_X], window->struts[STRUT_TOP_END_X])))
+        *top = window->struts[STRUT_TOP];
+      if (window->struts_edge == STRUTS_EDGE_BOTTOM &&
+          (IN_RANGE (left, window->struts[STRUT_BOTTOM_START_X], window->struts[STRUT_BOTTOM_END_X]) ||
+           IN_RANGE (right, window->struts[STRUT_BOTTOM_START_X], window->struts[STRUT_BOTTOM_END_X])))
+        *bottom = window->struts[STRUT_BOTTOM];
+    }
 }
