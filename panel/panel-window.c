@@ -1220,7 +1220,10 @@ panel_window_size_request (GtkWidget      *widget,
       window->top_margin = window->bottom_margin = top = bottom = 0;
       for (li = windows; li != NULL; li = li->next)
         {
-          panel_window_check_struts (li->data, alloc->x, alloc->x + alloc->width, &top, &bottom);
+          if (alloc->x != -9999)
+            panel_window_check_struts (li->data, alloc->x, alloc->x + alloc->width, &top, &bottom);
+          else
+            panel_window_check_struts (li->data, alloc->x + 9999, alloc->x + 9999 + alloc->width, &top, &bottom);
           window->top_margin = MAX (window->top_margin, top);
           window->bottom_margin = MAX (window->bottom_margin, bottom);
         }
