@@ -1169,7 +1169,7 @@ panel_window_size_request (GtkWidget      *widget,
   gint            length;
   gint            extra_width = 0, extra_height = 0;
   PanelBorders    borders;
-  gint            height, top, bottom;
+  gint            height, top, bottom, x;
   GSList         *windows;
   GSList         *li;
   GdkRectangle   *alloc = &window->alloc;
@@ -1221,9 +1221,15 @@ panel_window_size_request (GtkWidget      *widget,
       for (li = windows; li != NULL; li = li->next)
         {
           if (alloc->x != -9999)
-            panel_window_check_struts (li->data, alloc->x, alloc->x + alloc->width, &top, &bottom);
+            {
+              panel_window_check_struts (li->data, alloc->x, alloc->x + alloc->width, &top, &bottom);
+            }
           else
-            panel_window_check_struts (li->data, alloc->x + 9999, alloc->x + 9999 + alloc->width, &top, &bottom);
+            {
+              /* oops, we don't know the on-screen panel position, find it */
+              panel_window_size_allocate_set_xy (window, alloc->width, alloc->height, &x, NULL);
+              panel_window_check_struts (li->data, x, x + alloc->width, &top, &bottom);
+            }
           window->top_margin = MAX (window->top_margin, top);
           window->bottom_margin = MAX (window->bottom_margin, bottom);
         }
@@ -1367,73 +1373,79 @@ panel_window_size_allocate_set_xy (PanelWindow *window,
   gint value, hight;
 
   /* x-position */
-  switch (window->snap_position)
+  if (return_x != NULL)
     {
-    case SNAP_POSITION_NONE:
-    case SNAP_POSITION_N:
-    case SNAP_POSITION_S:
-      /* clamp base point on screen */
-      value = window->base_x - (window_width / 2);
-      hight = window->area.x + window->area.width - window_width;
-      *return_x = CLAMP (value, window->area.x, hight);
-      break;
+      switch (window->snap_position)
+        {
+        case SNAP_POSITION_NONE:
+        case SNAP_POSITION_N:
+        case SNAP_POSITION_S:
+          /* clamp base point on screen */
+          value = window->base_x - (window_width / 2);
+          hight = window->area.x + window->area.width - window_width;
+          *return_x = CLAMP (value, window->area.x, hight);
+          break;
 
-    case SNAP_POSITION_W:
-    case SNAP_POSITION_NW:
-    case SNAP_POSITION_WC:
-    case SNAP_POSITION_SW:
-      /* left */
-      *return_x = window->area.x;
-      break;
+        case SNAP_POSITION_W:
+        case SNAP_POSITION_NW:
+        case SNAP_POSITION_WC:
+        case SNAP_POSITION_SW:
+          /* left */
+          *return_x = window->area.x;
+          break;
 
-    case SNAP_POSITION_E:
-    case SNAP_POSITION_NE:
-    case SNAP_POSITION_EC:
-    case SNAP_POSITION_SE:
-      /* right */
-      *return_x = window->area.x + window->area.width - window_width;
-      break;
+        case SNAP_POSITION_E:
+        case SNAP_POSITION_NE:
+        case SNAP_POSITION_EC:
+        case SNAP_POSITION_SE:
+          /* right */
+          *return_x = window->area.x + window->area.width - window_width;
+          break;
 
-    case SNAP_POSITION_NC:
-    case SNAP_POSITION_SC:
-      /* center */
-      *return_x = window->area.x + (window->area.width - window_width) / 2;
-      break;
+        case SNAP_POSITION_NC:
+        case SNAP_POSITION_SC:
+          /* center */
+          *return_x = window->area.x + (window->area.width - window_width) / 2;
+          break;
+        }
     }
 
   /* y-position */
-  switch (window->snap_position)
+  if (return_y != NULL)
     {
-    case SNAP_POSITION_NONE:
-    case SNAP_POSITION_E:
-    case SNAP_POSITION_W:
-      /* clamp base point on screen */
-      value = window->base_y - (window_height / 2);
-      hight = window->area.y + window->area.height - window->bottom_margin - window_height;
-      *return_y = CLAMP (value, window->area.y + window->top_margin, hight);
-      break;
+      switch (window->snap_position)
+        {
+        case SNAP_POSITION_NONE:
+        case SNAP_POSITION_E:
+        case SNAP_POSITION_W:
+          /* clamp base point on screen */
+          value = window->base_y - (window_height / 2);
+          hight = window->area.y + window->area.height - window->bottom_margin - window_height;
+          *return_y = CLAMP (value, window->area.y + window->top_margin, hight);
+          break;
 
-    case SNAP_POSITION_NE:
-    case SNAP_POSITION_NW:
-    case SNAP_POSITION_NC:
-    case SNAP_POSITION_N:
-      /* top */
-      *return_y = window->area.y + window->top_margin;
-      break;
+        case SNAP_POSITION_NE:
+        case SNAP_POSITION_NW:
+        case SNAP_POSITION_NC:
+        case SNAP_POSITION_N:
+          /* top */
+          *return_y = window->area.y + window->top_margin;
+          break;
 
-    case SNAP_POSITION_SE:
-    case SNAP_POSITION_SW:
-    case SNAP_POSITION_SC:
-    case SNAP_POSITION_S:
-      /* bottom */
-      *return_y = window->area.y + window->area.height - window->bottom_margin - window_height;
-      break;
+        case SNAP_POSITION_SE:
+        case SNAP_POSITION_SW:
+        case SNAP_POSITION_SC:
+        case SNAP_POSITION_S:
+          /* bottom */
+          *return_y = window->area.y + window->area.height - window->bottom_margin - window_height;
+          break;
 
-    case SNAP_POSITION_EC:
-    case SNAP_POSITION_WC:
-      /* center */
-      *return_y = window->area.y + (window->area.height + window->top_margin - window->bottom_margin - window_height) / 2;
-      break;
+        case SNAP_POSITION_EC:
+        case SNAP_POSITION_WC:
+          /* center */
+          *return_y = window->area.y + (window->area.height + window->top_margin - window->bottom_margin - window_height) / 2;
+          break;
+        }
     }
 }
 
@@ -2799,7 +2811,7 @@ panel_window_focus (PanelWindow *window)
 
 
 
-#define IN_RANGE(x, low, high) (((x) >= (low) && (x) <= (high)))
+#define IN_RANGE(x, low, high) (((x) > (low) && (x) <= (high)))
 
 static void
 panel_window_check_struts (PanelWindow *window,
