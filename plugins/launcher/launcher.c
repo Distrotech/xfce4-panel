@@ -359,7 +359,7 @@ launcher_plugin_init (LauncherPlugin *plugin)
       G_CALLBACK (launcher_plugin_icon_theme_changed), plugin);
 
   /* create the panel widgets */
-  plugin->box = xfce_hvbox_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
+  plugin->box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
   gtk_container_add (GTK_CONTAINER (plugin), plugin->box);
 
   plugin->button = xfce_panel_create_button ();
@@ -1404,8 +1404,8 @@ launcher_plugin_pack_widgets (LauncherPlugin *plugin)
   gtk_box_reorder_child (GTK_BOX (plugin->box), plugin->arrow,
       (pos == LAUNCHER_ARROW_WEST || pos == LAUNCHER_ARROW_NORTH) ? 0 : -1);
 
-  /* set the orientation of the hvbox */
-  xfce_hvbox_set_orientation (XFCE_HVBOX (plugin->box),
+  /* set the orientation */
+  gtk_orientable_set_orientation (GTK_ORIENTABLE (plugin->box),
       !!(pos == LAUNCHER_ARROW_WEST || pos == LAUNCHER_ARROW_EAST) ?
           GTK_ORIENTATION_HORIZONTAL : GTK_ORIENTATION_VERTICAL);
 }

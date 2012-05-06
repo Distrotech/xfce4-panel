@@ -1103,7 +1103,7 @@ actions_plugin_pack_idle (gpointer data)
     {
       if (plugin->invert_orientation)
         orientation = !orientation;
-      box = xfce_hvbox_new (orientation, FALSE, 0);
+      box = gtk_box_new (orientation, 0);
       gtk_container_add (GTK_CONTAINER (plugin), box);
       gtk_widget_show (box);
 

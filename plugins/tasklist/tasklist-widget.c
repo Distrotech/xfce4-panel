@@ -2042,8 +2042,8 @@ xfce_tasklist_child_new (XfceTasklist *tasklist)
   gtk_button_set_relief (GTK_BUTTON (child->button),
                          tasklist->button_relief);
 
-  child->box = xfce_hvbox_new (!xfce_tasklist_vertical (tasklist) ?
-      GTK_ORIENTATION_HORIZONTAL : GTK_ORIENTATION_VERTICAL, FALSE, 6);
+  child->box = gtk_box_new (!xfce_tasklist_vertical (tasklist) ?
+      GTK_ORIENTATION_HORIZONTAL : GTK_ORIENTATION_VERTICAL, 6);
   gtk_container_add (GTK_CONTAINER (child->button), child->box);
   gtk_widget_show (child->box);
 
@@ -3846,7 +3846,7 @@ xfce_tasklist_update_orientation (XfceTasklist *tasklist)
       child = li->data;
 
       /* update task box */
-      xfce_hvbox_set_orientation (XFCE_HVBOX (child->box),
+      gtk_orientable_set_orientation (GTK_ORIENTABLE (child->box),
           horizontal ? GTK_ORIENTATION_HORIZONTAL : GTK_ORIENTATION_VERTICAL);
 
       /* update the label */

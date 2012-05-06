@@ -25,7 +25,6 @@ libxfce4panel_headers = \
 	libxfce4panel-config.h \
 	libxfce4panel-enums.h \
 	xfce-arrow-button.h \
-	xfce-hvbox.h \
 	xfce-panel-convenience.h \
 	xfce-panel-macros.h \
 	xfce-panel-macros-46.h \
@@ -45,7 +44,6 @@ libxfce4panel_1_0_la_SOURCES = \
 	$(libxfce4panel_headers) \
 	libxfce4panel-config.c \
 	xfce-arrow-button.c \
-	xfce-hvbox.c \
 	xfce-panel-convenience.c \
 	xfce-panel-plugin.c \
 	xfce-panel-plugin-provider.c \

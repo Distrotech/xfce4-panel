@@ -236,7 +236,7 @@ applications_menu_plugin_init (ApplicationsMenuPlugin *plugin)
   g_signal_connect (G_OBJECT (plugin->button), "button-press-event",
       G_CALLBACK (applications_menu_plugin_menu), plugin);
 
-  plugin->box = xfce_hvbox_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 1);
+  plugin->box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 1);
   gtk_container_add (GTK_CONTAINER (plugin->button), plugin->box);
   gtk_widget_show (plugin->box);
 

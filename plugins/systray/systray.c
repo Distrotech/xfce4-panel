@@ -227,7 +227,7 @@ systray_plugin_init (SystrayPlugin *plugin)
   gtk_widget_modify_style (plugin->frame, style);
   g_object_unref (G_OBJECT (style));
 
-  plugin->hvbox = xfce_hvbox_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 2);
+  plugin->hvbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 2);
   gtk_container_add (GTK_CONTAINER (plugin->frame), plugin->hvbox);
   gtk_widget_show (plugin->hvbox);
 
@@ -506,7 +506,7 @@ systray_plugin_orientation_changed (XfcePanelPlugin *panel_plugin,
 {
   SystrayPlugin *plugin = XFCE_SYSTRAY_PLUGIN (panel_plugin);
 
-  xfce_hvbox_set_orientation (XFCE_HVBOX (plugin->hvbox), orientation);
+  gtk_orientable_set_orientation (GTK_ORIENTABLE (plugin->hvbox), orientation);
   systray_box_set_orientation (XFCE_SYSTRAY_BOX (plugin->box), orientation);
 
   if (G_LIKELY (plugin->manager != NULL))

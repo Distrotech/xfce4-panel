@@ -29,7 +29,6 @@ G_BEGIN_DECLS
 #include <libxfce4panel/xfce-panel-macros.h>
 #include <libxfce4panel/xfce-panel-macros-46.h>
 #include <libxfce4panel/xfce-arrow-button.h>
-#include <libxfce4panel/xfce-hvbox.h>
 #include <libxfce4panel/xfce-panel-convenience.h>
 #include <libxfce4panel/xfce-panel-plugin.h>
 #include <libxfce4panel/xfce-panel-image.h>

@@ -101,7 +101,7 @@ tasklist_plugin_init (TasklistPlugin *plugin)
   GtkWidget *box;
 
   /* create widgets */
-  box = xfce_hvbox_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
+  box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
   gtk_container_add (GTK_CONTAINER (plugin), box);
   g_object_bind_property (G_OBJECT (plugin), "orientation",
                           G_OBJECT (box), "orientation",
