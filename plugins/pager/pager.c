@@ -33,7 +33,6 @@
 #include <common/panel-utils.h>
 #include <common/panel-private.h>
 #include <libwnck/libwnck.h>
-#include <exo/exo.h>
 
 #include "pager.h"
 #include "pager-buttons.h"
@@ -130,21 +129,21 @@ pager_plugin_class_init (PagerPluginClass *klass)
                                    g_param_spec_boolean ("workspace-scrolling",
                                                          NULL, NULL,
                                                          TRUE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_MINIATURE_VIEW,
                                    g_param_spec_boolean ("miniature-view",
                                                          NULL, NULL,
                                                          TRUE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_ROWS,
                                    g_param_spec_uint ("rows",
                                                       NULL, NULL,
                                                       1, 50, 1,
-                                                      EXO_PARAM_READWRITE));
+                                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 }
 
 
@@ -542,18 +541,21 @@ pager_plugin_configure_plugin (XfcePanelPlugin *panel_plugin)
 
   object = gtk_builder_get_object (builder, "workspace-scrolling");
   panel_return_if_fail (GTK_IS_TOGGLE_BUTTON (object));
-  exo_mutual_binding_new (G_OBJECT (plugin), "workspace-scrolling",
-                          G_OBJECT (object), "active");
+  g_object_bind_property (G_OBJECT (plugin), "workspace-scrolling",
+                          G_OBJECT (object), "active",
+                          G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
 
   object = gtk_builder_get_object (builder, "miniature-view");
   panel_return_if_fail (GTK_IS_TOGGLE_BUTTON (object));
-  exo_mutual_binding_new (G_OBJECT (plugin), "miniature-view",
-                          G_OBJECT (object), "active");
+  g_object_bind_property (G_OBJECT (plugin), "miniature-view",
+                          G_OBJECT (object), "active",
+                          G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
 
   object = gtk_builder_get_object (builder, "rows");
   panel_return_if_fail (GTK_IS_ADJUSTMENT (object));
-  exo_mutual_binding_new (G_OBJECT (plugin), "rows",
-                          G_OBJECT (object), "value");
+  g_object_bind_property (G_OBJECT (plugin), "rows",
+                          G_OBJECT (object), "value",
+                          G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
 
   /* update the rows limit */
   pager_plugin_configure_n_workspaces_changed (plugin->wnck_screen, NULL, builder);

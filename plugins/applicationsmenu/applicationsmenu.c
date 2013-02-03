@@ -20,7 +20,6 @@
 #include <config.h>
 #endif
 
-#include <exo/exo.h>
 #include <garcon/garcon.h>
 #include <libxfce4ui/libxfce4ui.h>
 #include <libxfce4util/libxfce4util.h>
@@ -146,55 +145,55 @@ applications_menu_plugin_class_init (ApplicationsMenuPluginClass *klass)
                                    g_param_spec_boolean ("show-generic-names",
                                                          NULL, NULL,
                                                          TRUE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_SHOW_MENU_ICONS,
                                    g_param_spec_boolean ("show-menu-icons",
                                                          NULL, NULL,
                                                          TRUE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class,
                                    PROP_SHOW_TOOLTIPS,
                                    g_param_spec_boolean ("show-tooltips",
                                                          NULL, NULL,
                                                          FALSE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_SHOW_BUTTON_TITLE,
                                    g_param_spec_boolean ("show-button-title",
                                                          NULL, NULL,
                                                          TRUE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_BUTTON_TITLE,
                                    g_param_spec_string ("button-title",
                                                         NULL, NULL,
                                                         DEFAULT_TITLE,
-                                                        EXO_PARAM_READWRITE));
+                                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_BUTTON_ICON,
                                    g_param_spec_string ("button-icon",
                                                         NULL, NULL,
                                                         DEFAULT_ICON_NAME,
-                                                        EXO_PARAM_READWRITE));
+                                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_CUSTOM_MENU,
                                    g_param_spec_boolean ("custom-menu",
                                                          NULL, NULL,
                                                          FALSE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_CUSTOM_MENU_FILE,
                                    g_param_spec_string ("custom-menu-file",
                                                         NULL, NULL,
                                                         NULL,
-                                                        EXO_PARAM_READWRITE));
+                                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   menu_icon_size = gtk_icon_size_from_name ("panel-applications-menu");
   if (menu_icon_size == GTK_ICON_SIZE_INVALID)
@@ -284,7 +283,7 @@ applications_menu_plugin_get_property (GObject    *object,
       break;
 
     case PROP_BUTTON_ICON:
-      g_value_set_string (value, exo_str_is_empty (plugin->button_icon) ?
+      g_value_set_string (value, panel_str_is_empty (plugin->button_icon) ?
           DEFAULT_ICON_NAME : plugin->button_icon);
       break;
 
@@ -347,7 +346,7 @@ applications_menu_plugin_set_property (GObject      *object,
       gtk_label_set_text (GTK_LABEL (plugin->label),
           plugin->button_title != NULL ? plugin->button_title : "");
       gtk_widget_set_tooltip_text (plugin->button,
-          exo_str_is_empty (plugin->button_title) ? NULL : plugin->button_title);
+          panel_str_is_empty (plugin->button_title) ? NULL : plugin->button_title);
 
       /* check if the label still fits */
       if (xfce_panel_plugin_get_mode (XFCE_PANEL_PLUGIN (plugin)) == XFCE_PANEL_PLUGIN_MODE_DESKBAR
@@ -361,7 +360,7 @@ applications_menu_plugin_set_property (GObject      *object,
       g_free (plugin->button_icon);
       plugin->button_icon = g_value_dup_string (value);
       xfce_panel_image_set_from_source (XFCE_PANEL_IMAGE (plugin->icon),
-          exo_str_is_empty (plugin->button_icon) ? DEFAULT_ICON_NAME : plugin->button_icon);
+          panel_str_is_empty (plugin->button_icon) ? DEFAULT_ICON_NAME : plugin->button_icon);
 
       force_a_resize = TRUE;
       break;
@@ -556,6 +555,7 @@ static void
 applications_menu_plugin_configure_plugin_icon_chooser (GtkWidget              *button,
                                                         ApplicationsMenuPlugin *plugin)
 {
+#ifdef EXO_CHECK_VERSION
   GtkWidget *chooser;
   gchar     *icon;
 
@@ -573,7 +573,7 @@ applications_menu_plugin_configure_plugin_icon_chooser (GtkWidget              *
                                            GTK_RESPONSE_CANCEL, -1);
 
   exo_icon_chooser_dialog_set_icon (EXO_ICON_CHOOSER_DIALOG (chooser),
-      exo_str_is_empty (plugin->button_icon) ? DEFAULT_ICON_NAME : plugin->button_icon);
+      panel_str_is_empty (plugin->button_icon) ? DEFAULT_ICON_NAME : plugin->button_icon);
 
   if (gtk_dialog_run (GTK_DIALOG (chooser)) == GTK_RESPONSE_ACCEPT)
     {
@@ -583,6 +583,7 @@ applications_menu_plugin_configure_plugin_icon_chooser (GtkWidget              *
     }
 
   gtk_widget_destroy (chooser);
+#endif
 }
 
 
@@ -629,14 +630,16 @@ applications_menu_plugin_configure_plugin (XfcePanelPlugin *panel_plugin)
     {
       object = gtk_builder_get_object (builder, check_names[i]);
       panel_return_if_fail (GTK_IS_CHECK_BUTTON (object));
-      exo_mutual_binding_new (G_OBJECT (plugin), check_names[i],
-                              G_OBJECT (object), "active");
+      g_object_bind_property (G_OBJECT (plugin), check_names[i],
+                              G_OBJECT (object), "active",
+                              G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
     }
 
   object = gtk_builder_get_object (builder, "button-title");
   panel_return_if_fail (GTK_IS_ENTRY (object));
-  exo_mutual_binding_new (G_OBJECT (plugin), "button-title",
-                          G_OBJECT (object), "text");
+  g_object_bind_property (G_OBJECT (plugin), "button-title",
+                          G_OBJECT (object), "text",
+                          G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
 
   object = gtk_builder_get_object (builder, "icon-button");
   panel_return_if_fail (GTK_IS_BUTTON (object));
@@ -644,7 +647,7 @@ applications_menu_plugin_configure_plugin (XfcePanelPlugin *panel_plugin)
      G_CALLBACK (applications_menu_plugin_configure_plugin_icon_chooser), plugin);
 
   plugin->dialog_icon = xfce_panel_image_new_from_source (
-      exo_str_is_empty (plugin->button_icon) ? DEFAULT_ICON_NAME : plugin->button_icon);
+      panel_str_is_empty (plugin->button_icon) ? DEFAULT_ICON_NAME : plugin->button_icon);
   xfce_panel_image_set_size (XFCE_PANEL_IMAGE (plugin->dialog_icon), 48);
   gtk_container_add (GTK_CONTAINER (object), plugin->dialog_icon);
   g_object_add_weak_pointer (G_OBJECT (plugin->dialog_icon), (gpointer) &plugin->dialog_icon);
@@ -658,7 +661,9 @@ applications_menu_plugin_configure_plugin (XfcePanelPlugin *panel_plugin)
     {
       object2 = gtk_builder_get_object (builder, "use-default-menu");
       panel_return_if_fail (GTK_IS_RADIO_BUTTON (object2));
-      exo_binding_new (G_OBJECT (object2), "active", G_OBJECT (object), "sensitive");
+      g_object_bind_property (G_OBJECT (object2), "active",
+                              G_OBJECT (object), "sensitive",
+                              G_BINDING_SYNC_CREATE);
       g_signal_connect (G_OBJECT (object), "clicked",
           G_CALLBACK (applications_menu_plugin_configure_plugin_edit), plugin);
     }
@@ -670,17 +675,20 @@ applications_menu_plugin_configure_plugin (XfcePanelPlugin *panel_plugin)
 
   object = gtk_builder_get_object (builder, "use-custom-menu");
   panel_return_if_fail (GTK_IS_RADIO_BUTTON (object));
-  exo_mutual_binding_new (G_OBJECT (plugin), "custom-menu",
-                          G_OBJECT (object), "active");
+  g_object_bind_property (G_OBJECT (plugin), "custom-menu",
+                          G_OBJECT (object), "active",
+                          G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
 
   /* sensitivity of custom file selector */
   object2 = gtk_builder_get_object (builder, "custom-box");
   panel_return_if_fail (GTK_IS_WIDGET (object2));
-  exo_binding_new (G_OBJECT (object), "active", G_OBJECT (object2), "sensitive");
+  g_object_bind_property (G_OBJECT (object), "active",
+                          G_OBJECT (object2), "sensitive",
+                          G_BINDING_SYNC_CREATE);
 
   object = gtk_builder_get_object (builder, "custom-file");
   panel_return_if_fail (GTK_IS_FILE_CHOOSER_BUTTON (object));
-  if (!exo_str_is_empty (plugin->custom_menu_file))
+  if (!panel_str_is_empty (plugin->custom_menu_file))
     gtk_file_chooser_set_filename (GTK_FILE_CHOOSER (object), plugin->custom_menu_file);
   g_signal_connect (G_OBJECT (object), "file-set",
      G_CALLBACK (applications_menu_plugin_configure_plugin_file_set), plugin);
@@ -772,7 +780,7 @@ applications_menu_plugin_menu_item_activate (GtkWidget      *mi,
   panel_return_if_fail (GARCON_IS_MENU_ITEM (item));
 
   command = garcon_menu_item_get_command (item);
-  if (exo_str_is_empty (command))
+  if (panel_str_is_empty (command))
     return;
 
   string = g_string_sized_new (100);
@@ -794,7 +802,7 @@ applications_menu_plugin_menu_item_activate (GtkWidget      *mi,
 
             case 'i':
               tmp = garcon_menu_item_get_icon_name (item);
-              if (!exo_str_is_empty (tmp))
+              if (!panel_str_is_empty (tmp))
                 {
                   g_string_append (string, "--icon ");
                   applications_menu_plugin_append_quoted (string, tmp);
@@ -803,13 +811,13 @@ applications_menu_plugin_menu_item_activate (GtkWidget      *mi,
 
             case 'c':
               tmp = garcon_menu_item_get_name (item);
-              if (!exo_str_is_empty (tmp))
+              if (!panel_str_is_empty (tmp))
                 applications_menu_plugin_append_quoted (string, tmp);
               break;
 
             case 'k':
               uri = garcon_menu_item_get_uri (item);
-              if (!exo_str_is_empty (uri))
+              if (!panel_str_is_empty (uri))
                 applications_menu_plugin_append_quoted (string, uri);
               g_free (uri);
               break;
@@ -859,7 +867,7 @@ applications_menu_plugin_menu_item_drag_begin (GarconMenuItem   *item,
   panel_return_if_fail (GARCON_IS_MENU_ITEM (item));
 
   icon_name = garcon_menu_item_get_icon_name (item);
-  if (!exo_str_is_empty (icon_name))
+  if (!panel_str_is_empty (icon_name))
     gtk_drag_set_icon_name (drag_context, icon_name, 0, 0);
 }
 
@@ -914,9 +922,9 @@ applications_menu_plugin_menu_reload (ApplicationsMenuPlugin *plugin)
        * time to finalize the events that triggered the reload */
       if (GTK_WIDGET_VISIBLE (plugin->menu))
         g_signal_connect (G_OBJECT (plugin->menu), "selection-done",
-            G_CALLBACK (exo_gtk_object_destroy_later), NULL);
+            G_CALLBACK (panel_utils_destroy_later), NULL);
       else
-        exo_gtk_object_destroy_later (GTK_OBJECT (plugin->menu));
+        panel_utils_destroy_later (GTK_WIDGET (plugin->menu));
     }
 }
 
@@ -975,7 +983,7 @@ applications_menu_plugin_menu_add (GtkWidget              *gtk_menu,
           if (plugin->show_tooltips)
             {
               comment = garcon_menu_item_get_comment (li->data);
-              if (!exo_str_is_empty (comment))
+              if (!panel_str_is_empty (comment))
                 gtk_widget_set_tooltip_text (mi, comment);
             }
 
@@ -990,13 +998,13 @@ applications_menu_plugin_menu_add (GtkWidget              *gtk_menu,
               G_CALLBACK (applications_menu_plugin_menu_item_drag_end), plugin);
 
           command = garcon_menu_item_get_command (li->data);
-          if (G_UNLIKELY (exo_str_is_empty (command)))
+          if (G_UNLIKELY (panel_str_is_empty (command)))
             gtk_widget_set_sensitive (mi, FALSE);
 
           if (plugin->show_menu_icons)
             {
               icon_name = garcon_menu_item_get_icon_name (li->data);
-              if (exo_str_is_empty (icon_name))
+              if (panel_str_is_empty (icon_name))
                 icon_name = "applications-other";
 
               image = xfce_panel_image_new_from_source (icon_name);
@@ -1041,7 +1049,7 @@ applications_menu_plugin_menu_add (GtkWidget              *gtk_menu,
               if (plugin->show_menu_icons)
                 {
                   icon_name = garcon_menu_element_get_icon_name (li->data);
-                  if (exo_str_is_empty (icon_name))
+                  if (panel_str_is_empty (icon_name))
                     icon_name = "applications-other";
 
                   image = xfce_panel_image_new_from_source (icon_name);

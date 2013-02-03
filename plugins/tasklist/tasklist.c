@@ -20,7 +20,6 @@
 #include <config.h>
 #endif
 
-#include <exo/exo.h>
 #include <libxfce4ui/libxfce4ui.h>
 #include <common/panel-xfconf.h>
 #include <common/panel-utils.h>
@@ -104,7 +103,9 @@ tasklist_plugin_init (TasklistPlugin *plugin)
   /* create widgets */
   box = xfce_hvbox_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
   gtk_container_add (GTK_CONTAINER (plugin), box);
-  exo_binding_new (G_OBJECT (plugin), "orientation", G_OBJECT (box), "orientation");
+  g_object_bind_property (G_OBJECT (plugin), "orientation",
+                          G_OBJECT (box), "orientation",
+                          G_BINDING_SYNC_CREATE);
   gtk_widget_show (box);
 
   plugin->handle = gtk_alignment_new (0.00, 0.00, 0.00, 0.00);
@@ -117,8 +118,9 @@ tasklist_plugin_init (TasklistPlugin *plugin)
   plugin->tasklist = g_object_new (XFCE_TYPE_TASKLIST, NULL);
   gtk_box_pack_start (GTK_BOX (box), plugin->tasklist, TRUE, TRUE, 0);
 
-  exo_binding_new (G_OBJECT (plugin->tasklist), "show-handle",
-                   G_OBJECT (plugin->handle), "visible");
+  g_object_bind_property (G_OBJECT (plugin->tasklist), "show-handle",
+                          G_OBJECT (plugin->handle), "visible",
+                          G_BINDING_SYNC_CREATE);
 }
 
 
@@ -232,15 +234,19 @@ tasklist_plugin_configure_plugin (XfcePanelPlugin *panel_plugin)
 #define TASKLIST_DIALOG_BIND(name, property) \
   object = gtk_builder_get_object (builder, (name)); \
   panel_return_if_fail (G_IS_OBJECT (object)); \
-  exo_mutual_binding_new (G_OBJECT (plugin->tasklist), (name), \
-                          G_OBJECT (object), (property));
+  g_object_bind_property (G_OBJECT (plugin->tasklist), (name), \
+                          G_OBJECT (object), (property), \
+                          G_BINDING_SYNC_CREATE);
 
 #define TASKLIST_DIALOG_BIND_INV(name, property) \
   object = gtk_builder_get_object (builder, (name)); \
   panel_return_if_fail (G_IS_OBJECT (object)); \
-  exo_mutual_binding_new_with_negation (G_OBJECT (plugin->tasklist), \
-                                        name,  G_OBJECT (object), \
-                                        property);
+  g_object_bind_property (G_OBJECT (plugin->tasklist), \
+                          name,  G_OBJECT (object), \
+                          property, \
+                          G_BINDING_BIDIRECTIONAL \
+                          | G_BINDING_SYNC_CREATE \
+                          | G_BINDING_INVERT_BOOLEAN);
 
   TASKLIST_DIALOG_BIND ("show-labels", "active")
   TASKLIST_DIALOG_BIND ("grouping", "active")

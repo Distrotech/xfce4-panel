@@ -29,7 +29,6 @@
 #include <common/panel-private.h>
 #include <common/panel-xfconf.h>
 #include <common/panel-utils.h>
-#include <exo/exo.h>
 
 #include "separator.h"
 #include "separator-dialog_ui.h"
@@ -139,14 +138,14 @@ separator_plugin_class_init (SeparatorPluginClass *klass)
                                                       SEPARATOR_PLUGIN_STYLE_MIN,
                                                       SEPARATOR_PLUGIN_STYLE_MAX,
                                                       SEPARATOR_PLUGIN_STYLE_DEFAULT,
-                                                      EXO_PARAM_READWRITE));
+                                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_EXPAND,
                                    g_param_spec_boolean ("expand",
                                                          NULL, NULL,
                                                          FALSE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 }
 
 
@@ -396,12 +395,14 @@ separator_plugin_configure_plugin (XfcePanelPlugin *panel_plugin)
     return;
 
   style = gtk_builder_get_object (builder, "style");
-  exo_mutual_binding_new (G_OBJECT (plugin), "style",
-                          G_OBJECT (style), "active");
+  g_object_bind_property (G_OBJECT (plugin), "style",
+                          G_OBJECT (style), "active",
+                          G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
 
   expand = gtk_builder_get_object (builder, "expand");
-  exo_mutual_binding_new (G_OBJECT (plugin), "expand",
-                          G_OBJECT (expand), "active");
+  g_object_bind_property (G_OBJECT (plugin), "expand",
+                          G_OBJECT (expand), "active",
+                          G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
 
   gtk_widget_show (GTK_WIDGET (dialog));
 }

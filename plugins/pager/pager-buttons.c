@@ -21,7 +21,7 @@
 #endif
 
 #include <gtk/gtk.h>
-#include <exo/exo.h>
+#include <libxfce4ui/libxfce4ui.h>
 #include <libxfce4panel/libxfce4panel.h>
 #include <common/panel-private.h>
 
@@ -114,7 +114,7 @@ pager_buttons_class_init (PagerButtonsClass *klass)
                                    g_param_spec_object ("screen",
                                                          NULL, NULL,
                                                          WNCK_TYPE_SCREEN,
-                                                         EXO_PARAM_WRITABLE
+                                                         G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS
                                                          | G_PARAM_CONSTRUCT_ONLY));
 
   g_object_class_install_property (gobject_class,
@@ -122,7 +122,7 @@ pager_buttons_class_init (PagerButtonsClass *klass)
                                    g_param_spec_int ("rows",
                                                      NULL, NULL,
                                                      1, 100, 1,
-                                                     EXO_PARAM_READWRITE));
+                                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_ORIENTATION,
@@ -130,7 +130,7 @@ pager_buttons_class_init (PagerButtonsClass *klass)
                                                      NULL, NULL,
                                                      GTK_TYPE_ORIENTATION,
                                                      GTK_ORIENTATION_HORIZONTAL,
-                                                     EXO_PARAM_READWRITE));
+                                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 }
 
 
@@ -571,11 +571,11 @@ pager_buttons_workspace_button_label (WnckWorkspace *workspace,
 
   /* try to get an utf-8 valid name */
   name = wnck_workspace_get_name (workspace);
-  if (!exo_str_is_empty (name)
+  if (!panel_str_is_empty (name)
       && !g_utf8_validate (name, -1, NULL))
     name = utf8 = g_locale_to_utf8 (name, -1, NULL, NULL, NULL);
 
-  if (exo_str_is_empty (name))
+  if (panel_str_is_empty (name))
     name = name_num = g_strdup_printf (_("Workspace %d"),
         wnck_workspace_get_number (workspace) + 1);
 

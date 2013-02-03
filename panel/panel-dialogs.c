@@ -24,7 +24,6 @@
 #include <string.h>
 #endif
 
-#include <exo/exo.h>
 #include <libxfce4util/libxfce4util.h>
 #include <libxfce4ui/libxfce4ui.h>
 
@@ -42,14 +41,19 @@ panel_dialogs_show_about_email_hook (GtkAboutDialog *dialog,
                                      const gchar    *uri,
                                      gpointer        data)
 {
+  GError *error = NULL;
+
   if (g_strcmp0 ("tictactoe@xfce.org", uri) == 0)
     {
       /* open tic-tac-toe */
       panel_tic_tac_toe_show ();
     }
-  else
+  else if (!gtk_show_uri (gtk_window_get_screen (GTK_WINDOW (dialog)),
+                          uri, gtk_get_current_event_time (), &error))
     {
-      exo_gtk_url_about_dialog_hook (dialog, uri, data);
+      xfce_dialog_show_error (GTK_WINDOW (dialog), error,
+                              _("Unable to open the e-mail address"));
+      g_error_free (error);
     }
 }
 
@@ -73,9 +77,6 @@ panel_dialogs_show_about (void)
                                 "Tic-tac-toe <tictactoe@xfce.org>");
 
   gtk_about_dialog_set_email_hook (panel_dialogs_show_about_email_hook, NULL, NULL);
-#if !GTK_CHECK_VERSION (2, 18, 0)
-  gtk_about_dialog_set_url_hook (exo_gtk_url_about_dialog_hook, NULL, NULL);
-#endif
 
   gtk_show_about_dialog (NULL,
                          "authors", authors,

@@ -24,7 +24,6 @@
 #include <string.h>
 #endif
 
-#include <exo/exo.h>
 #include <libxfce4ui/libxfce4ui.h>
 #include <libxfce4util/libxfce4util.h>
 #include <garcon/garcon.h>
@@ -132,7 +131,7 @@ launcher_dialog_add_visible_function (GtkTreeModel *model,
 
   /* get the search string from the item */
   text = gtk_entry_get_text (GTK_ENTRY (user_data));
-  if (G_UNLIKELY (exo_str_is_empty (text)))
+  if (G_UNLIKELY (panel_str_is_empty (text)))
     return TRUE;
 
   /* casefold the search text */
@@ -142,7 +141,7 @@ launcher_dialog_add_visible_function (GtkTreeModel *model,
 
   /* try the pre-build search string first */
   gtk_tree_model_get (model, iter, COL_SEARCH, &string, -1);
-  if (!exo_str_is_empty (string))
+  if (!panel_str_is_empty (string))
     {
       /* search */
       visible = (strstr (string, text_casefolded) != NULL);
@@ -151,7 +150,7 @@ launcher_dialog_add_visible_function (GtkTreeModel *model,
     {
       /* get the name */
       gtk_tree_model_get (model, iter, COL_NAME, &string, -1);
-      if (!exo_str_is_empty (string))
+      if (!panel_str_is_empty (string))
         {
           /* escape and casefold the name */
           escaped = g_markup_escape_text (string, -1);
@@ -856,7 +855,7 @@ launcher_dialog_item_button_clicked (GtkWidget            *button,
           if (xfce_dialog_confirm (GTK_WINDOW (toplevel), GTK_STOCK_DELETE, NULL,
                   _("If you delete an item, it will be permanently removed"),
                   _("Are you sure you want to remove \"%s\"?"),
-                  exo_str_is_empty (display_name) ? _("Unnamed item") : display_name))
+                  panel_str_is_empty (display_name) ? _("Unnamed item") : display_name))
             {
               /* remove the item from the store */
               gtk_list_store_remove (GTK_LIST_STORE (model), &iter_a);
@@ -1050,13 +1049,13 @@ launcher_dialog_items_set_item (GtkTreeModel         *model,
   name = garcon_menu_item_get_name (item);
   comment = garcon_menu_item_get_comment (item);
 
-  if (!exo_str_is_empty (comment))
+  if (!panel_str_is_empty (comment))
     markup = g_markup_printf_escaped ("<b>%s</b>\n%s", name, comment);
   else
     markup = g_markup_printf_escaped ("<b>%s</b>", name);
 
   icon_name = garcon_menu_item_get_icon_name (item);
-  if (!exo_str_is_empty (icon_name))
+  if (!panel_str_is_empty (icon_name))
     {
       if (!gtk_icon_size_lookup (GTK_ICON_SIZE_DND, &w, &h))
         w = h = 32;
@@ -1241,8 +1240,9 @@ launcher_dialog_show (LauncherPlugin *plugin)
     {
       object = gtk_builder_get_object (builder, binding_names[i]);
       panel_return_if_fail (GTK_IS_WIDGET (object));
-      exo_mutual_binding_new (G_OBJECT (plugin), binding_names[i],
-                              G_OBJECT (object), "active");
+      g_object_bind_property (G_OBJECT (plugin), binding_names[i],
+                              G_OBJECT (object), "active",
+                              G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
     }
 
   /* setup responses for the add dialog */

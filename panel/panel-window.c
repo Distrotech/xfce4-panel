@@ -26,13 +26,17 @@
 #ifdef HAVE_MATH_H
 #include <math.h>
 #endif
+#ifdef HAVE_STRING_H
+#include <string.h>
+#endif
 
 #ifdef GDK_WINDOWING_X11
 #include <gdk/gdkx.h>
 #include <X11/Xlib.h>
 #endif
 
-#include <exo/exo.h>
+#include <libxfce4ui/libxfce4ui.h>
+
 #include <common/panel-private.h>
 #include <common/panel-debug.h>
 #include <common/panel-utils.h>
@@ -352,7 +356,7 @@ panel_window_class_init (PanelWindowClass *klass)
                                    PROP_ID,
                                    g_param_spec_int ("id", NULL, NULL,
                                                      0, G_MAXINT, 0,
-                                                     EXO_PARAM_READWRITE
+                                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS
                                                      | G_PARAM_CONSTRUCT_ONLY));
 
   g_object_class_install_property (gobject_class,
@@ -360,67 +364,67 @@ panel_window_class_init (PanelWindowClass *klass)
                                    g_param_spec_enum ("mode", NULL, NULL,
                                                       XFCE_TYPE_PANEL_PLUGIN_MODE,
                                                       XFCE_PANEL_PLUGIN_MODE_HORIZONTAL,
-                                                      EXO_PARAM_READWRITE));
+                                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_SIZE,
                                    g_param_spec_uint ("size", NULL, NULL,
                                                       16, 128, 48,
-                                                      EXO_PARAM_READWRITE));
+                                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_NROWS,
                                    g_param_spec_uint ("nrows", NULL, NULL,
                                                       1, 6, 1,
-                                                      EXO_PARAM_READWRITE));
+                                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_LENGTH,
                                    g_param_spec_uint ("length", NULL, NULL,
                                                       1, 100, 10,
-                                                      EXO_PARAM_READWRITE));
+                                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_LENGTH_ADJUST,
                                    g_param_spec_boolean ("length-adjust", NULL, NULL,
                                                          TRUE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_POSITION_LOCKED,
                                    g_param_spec_boolean ("position-locked", NULL, NULL,
                                                          FALSE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_AUTOHIDE,
                                    g_param_spec_boolean ("autohide", NULL, NULL,
                                                          FALSE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_SPAN_MONITORS,
                                    g_param_spec_boolean ("span-monitors", NULL, NULL,
                                                          FALSE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_OUTPUT_NAME,
                                    g_param_spec_string ("output-name", NULL, NULL,
                                                         NULL,
-                                                        EXO_PARAM_READWRITE));
+                                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_POSITION,
                                    g_param_spec_string ("position", NULL, NULL,
                                                         NULL,
-                                                        EXO_PARAM_READWRITE));
+                                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_DISABLE_STRUTS,
                                    g_param_spec_boolean ("disable-struts", NULL, NULL,
                                                          FALSE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   gtk_widget_class_install_style_property (gtkwidget_class,
                                            g_param_spec_int ("popup-delay",
@@ -428,7 +432,7 @@ panel_window_class_init (PanelWindowClass *klass)
                                                              "Time before the panel will unhide on an enter event",
                                                              1, G_MAXINT,
                                                              DEFAULT_POPUP_DELAY,
-                                                             EXO_PARAM_READABLE));
+                                                             G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   gtk_widget_class_install_style_property (gtkwidget_class,
                                            g_param_spec_int ("popdown-delay",
@@ -436,7 +440,7 @@ panel_window_class_init (PanelWindowClass *klass)
                                                              "Time before the panel will hide on a leave event",
                                                              1, G_MAXINT,
                                                              DEFAULT_POPDOWN_DELAY,
-                                                             EXO_PARAM_READABLE));
+                                                             G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   gtk_widget_class_install_style_property (gtkwidget_class,
                                            g_param_spec_int ("autohide-size",
@@ -444,7 +448,7 @@ panel_window_class_init (PanelWindowClass *klass)
                                                              "Size of hidden panel",
                                                              1, G_MAXINT,
                                                              DEFAULT_ATUOHIDE_SIZE,
-                                                             EXO_PARAM_READABLE));
+                                                             G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   /* initialize the atoms */
   cardinal_atom = gdk_atom_intern_static_string ("CARDINAL");
@@ -680,7 +684,7 @@ panel_window_set_property (GObject      *object,
       g_free (window->output_name);
 
       val_string = g_value_get_string (value);
-      if (exo_str_is_empty (val_string))
+      if (panel_str_is_empty (val_string))
         window->output_name = NULL;
       else
         window->output_name = g_strdup (val_string);
@@ -690,7 +694,7 @@ panel_window_set_property (GObject      *object,
 
     case PROP_POSITION:
       val_string = g_value_get_string (value);
-      if (!exo_str_is_empty (val_string)
+      if (!panel_str_is_empty (val_string)
           && sscanf (val_string, "p=%d;x=%d;y=%d", &snap_position, &x, &y) == 3)
         {
           window->snap_position = CLAMP (snap_position, SNAP_POSITION_NONE, SNAP_POSITION_S);
@@ -1945,7 +1949,7 @@ panel_window_screen_layout_changed (GdkScreen   *screen,
     }
   else
     {
-      if (exo_str_is_empty (window->output_name))
+      if (panel_str_is_empty (window->output_name))
         {
           normal_monitor_positioning:
 
@@ -2254,8 +2258,11 @@ panel_window_set_autohide (PanelWindow *window,
 
       /* bind some properties to sync the two windows */
       for (i = 0; i < G_N_ELEMENTS (properties); i++)
-        exo_binding_new (G_OBJECT (window), properties[i],
-                         G_OBJECT (popup), properties[i]);
+        {
+          g_object_bind_property (G_OBJECT (window), properties[i],
+                                  G_OBJECT (popup), properties[i],
+                                  G_BINDING_SYNC_CREATE);
+        }
 
       /* signals for pointer enter/leave events */
       g_signal_connect (G_OBJECT (popup), "enter-notify-event",

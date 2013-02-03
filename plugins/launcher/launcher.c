@@ -25,7 +25,6 @@
 #endif
 
 #include <gio/gio.h>
-#include <exo/exo.h>
 #include <libxfce4util/libxfce4util.h>
 #include <libxfce4ui/libxfce4ui.h>
 #include <garcon/garcon.h>
@@ -280,28 +279,28 @@ launcher_plugin_class_init (LauncherPluginClass *klass)
                                    g_param_spec_boxed ("items",
                                                        NULL, NULL,
                                                        PANEL_PROPERTIES_TYPE_VALUE_ARRAY,
-                                                       EXO_PARAM_READWRITE));
+                                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_DISABLE_TOOLTIPS,
                                    g_param_spec_boolean ("disable-tooltips",
                                                          NULL, NULL,
                                                          FALSE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_MOVE_FIRST,
                                    g_param_spec_boolean ("move-first",
                                                          NULL, NULL,
                                                          FALSE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_SHOW_LABEL,
                                    g_param_spec_boolean ("show-label",
                                                          NULL, NULL,
                                                          FALSE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_ARROW_POSITION,
@@ -310,7 +309,7 @@ launcher_plugin_class_init (LauncherPluginClass *klass)
                                                       LAUNCHER_ARROW_DEFAULT,
                                                       LAUNCHER_ARROW_INTERNAL,
                                                       LAUNCHER_ARROW_DEFAULT,
-                                                      EXO_PARAM_READWRITE));
+                                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   launcher_signals[ITEMS_CHANGED] =
     g_signal_new (g_intern_static_string ("items-changed"),
@@ -551,6 +550,27 @@ err1:
 }
 
 
+static gboolean
+_exo_str_looks_like_an_uri (const gchar *str)
+{
+  const gchar *s = str;
+
+  if (G_UNLIKELY (str == NULL))
+    return FALSE;
+
+  /* <scheme> starts with an alpha character */
+  if (g_ascii_isalpha (*s))
+    {
+      /* <scheme> continues with (alpha | digit | "+" | "-" | ".")* */
+      for (++s; g_ascii_isalnum (*s) || *s == '+' || *s == '-' || *s == '.'; ++s);
+
+      /* <scheme> must be followed by ":" */
+      return (*s == ':' && *(s+1) == '/');
+    }
+
+  return FALSE;
+}
+
 
 static GarconMenuItem *
 launcher_plugin_item_load (LauncherPlugin *plugin,
@@ -568,7 +588,7 @@ launcher_plugin_item_load (LauncherPlugin *plugin,
   panel_return_val_if_fail (str != NULL, NULL);
   panel_return_val_if_fail (G_IS_FILE (plugin->config_directory), NULL);
 
-  if (G_UNLIKELY (g_path_is_absolute (str) || exo_str_looks_like_an_uri (str)))
+  if (G_UNLIKELY (g_path_is_absolute (str) || _exo_str_looks_like_an_uri (str)))
     {
       src_file = g_file_new_for_commandline_arg (str);
       if (g_file_has_prefix (src_file, plugin->config_directory))
@@ -1156,7 +1176,7 @@ launcher_plugin_remote_event (XfcePanelPlugin *panel_plugin,
 
   panel_return_val_if_fail (value == NULL || G_IS_VALUE (value), FALSE);
 
-  if (exo_str_is_equal (name, "popup")
+  if (g_strcmp0 (name, "popup") == 0
       && LIST_HAS_TWO_OR_MORE_ENTRIES (plugin->items)
       && (plugin->menu == NULL || !GTK_WIDGET_VISIBLE (plugin->menu)))
     {
@@ -1165,7 +1185,7 @@ launcher_plugin_remote_event (XfcePanelPlugin *panel_plugin,
       return TRUE;
     }
 
-  if (exo_str_is_equal (name, "disable-tooltips")
+  if (g_strcmp0 (name, "disable-tooltips") == 0
       && value != NULL
       && G_VALUE_HOLDS_BOOLEAN (value))
     {
@@ -1401,7 +1421,7 @@ launcher_plugin_tooltip_pixbuf (GdkScreen   *screen,
 
   panel_return_val_if_fail (screen == NULL || GDK_IS_SCREEN (screen), NULL);
 
-  if (exo_str_is_empty (icon_name))
+  if (panel_str_is_empty (icon_name))
     return NULL;
 
   if (gtk_icon_size_lookup (launcher_tooltip_icon_size, &w, &h))
@@ -1411,7 +1431,7 @@ launcher_plugin_tooltip_pixbuf (GdkScreen   *screen,
 
   /* load directly from a file */
   if (G_UNLIKELY (g_path_is_absolute (icon_name)))
-    return exo_gdk_pixbuf_new_from_file_at_max_size (icon_name, size, size, TRUE, NULL);
+    return gdk_pixbuf_new_from_file_at_scale (icon_name, size, size, TRUE, NULL);
 
   if (G_LIKELY (screen != NULL))
     theme = gtk_icon_theme_get_for_screen (screen);
@@ -1572,7 +1592,7 @@ launcher_plugin_menu_construct (LauncherPlugin *plugin)
       /* create the menu item */
       name = garcon_menu_item_get_name (item);
       mi = gtk_image_menu_item_new_with_label (
-          exo_str_is_empty (name) ? _("Unnamed Item") : name);
+          panel_str_is_empty (name) ? _("Unnamed Item") : name);
       g_object_set_qdata (G_OBJECT (mi), launcher_plugin_quark, plugin);
       gtk_widget_show (mi);
       gtk_drag_dest_set (mi, GTK_DEST_DEFAULT_ALL, drop_targets,
@@ -1600,7 +1620,7 @@ launcher_plugin_menu_construct (LauncherPlugin *plugin)
 
       /* set the icon if one is set */
       icon_name = garcon_menu_item_get_icon_name (item);
-      if (!exo_str_is_empty (icon_name))
+      if (!panel_str_is_empty (icon_name))
         {
           image = xfce_panel_image_new_from_source (icon_name);
           xfce_panel_image_set_size (XFCE_PANEL_IMAGE (image), size);
@@ -1733,7 +1753,7 @@ launcher_plugin_button_update (LauncherPlugin *plugin)
 
       icon_name = garcon_menu_item_get_icon_name (item);
       xfce_panel_image_set_from_source (XFCE_PANEL_IMAGE (plugin->child),
-          exo_str_is_empty (icon_name) ? GTK_STOCK_MISSING_IMAGE : icon_name);
+          panel_str_is_empty (icon_name) ? GTK_STOCK_MISSING_IMAGE : icon_name);
 
       panel_utils_set_atk_info (plugin->button,
           garcon_menu_item_get_name (item),
@@ -2230,11 +2250,11 @@ launcher_plugin_item_query_tooltip (GtkWidget      *widget,
 
   /* require atleast an item name */
   name = garcon_menu_item_get_name (item);
-  if (exo_str_is_empty (name))
+  if (panel_str_is_empty (name))
     return FALSE;
 
   comment = garcon_menu_item_get_comment (item);
-  if (!exo_str_is_empty (comment))
+  if (!panel_str_is_empty (comment))
     {
       markup = g_markup_printf_escaped ("<b>%s</b>\n%s", name, comment);
       gtk_tooltip_set_markup (tooltip, markup);
@@ -2250,7 +2270,7 @@ launcher_plugin_item_query_tooltip (GtkWidget      *widget,
    * data on the menu item widget */
   if (GTK_IS_MENU_ITEM (widget))
     {
-      pixbuf = g_object_get_data (G_OBJECT (widget), I_("pixbuf-cache"));
+      pixbuf = g_object_get_data (G_OBJECT (widget), "pixbuf-cache");
       if (G_LIKELY (pixbuf != NULL))
         {
           gtk_tooltip_set_icon (tooltip, pixbuf);
@@ -2262,7 +2282,7 @@ launcher_plugin_item_query_tooltip (GtkWidget      *widget,
           if (G_LIKELY (pixbuf != NULL))
             {
               gtk_tooltip_set_icon (tooltip, pixbuf);
-              g_object_set_data_full (G_OBJECT (widget), I_("pixbuf-cache"), pixbuf,
+              g_object_set_data_full (G_OBJECT (widget), "pixbuf-cache", pixbuf,
                                       (GDestroyNotify) g_object_unref);
             }
         }
@@ -2330,7 +2350,7 @@ launcher_plugin_item_exec (GarconMenuItem *item,
 
   /* leave when there is nothing to execute */
   command = garcon_menu_item_get_command (item);
-  if (exo_str_is_empty (command))
+  if (panel_str_is_empty (command))
     return;
 
   if (G_UNLIKELY (uri_list != NULL
@@ -2373,7 +2393,7 @@ launcher_plugin_item_exec_from_clipboard (GarconMenuItem *item,
     text = gtk_clipboard_wait_for_text (clipboard);
 
   /* try the secondary keayboard if the text is empty */
-  if (exo_str_is_empty (text))
+  if (panel_str_is_empty (text))
     {
       /* get the secondary clipboard text */
       clipboard = gtk_clipboard_get (GDK_SELECTION_CLIPBOARD);
@@ -2381,7 +2401,7 @@ launcher_plugin_item_exec_from_clipboard (GarconMenuItem *item,
         text = gtk_clipboard_wait_for_text (clipboard);
     }
 
-  if (!exo_str_is_empty (text))
+  if (!panel_str_is_empty (text))
     {
       /* create fake selection data */
       data.data = (guchar *) text;
@@ -2433,7 +2453,7 @@ launcher_plugin_exec_parse (GarconMenuItem   *item,
 
   /* get the command */
   command = garcon_menu_item_get_command (item);
-  panel_return_val_if_fail (!exo_str_is_empty (command), FALSE);
+  panel_return_val_if_fail (!panel_str_is_empty (command), FALSE);
 
   /* allocate an empty string */
   string = g_string_sized_new (100);
@@ -2481,7 +2501,7 @@ launcher_plugin_exec_parse (GarconMenuItem   *item,
 
             case 'i':
               tmp = garcon_menu_item_get_icon_name (item);
-              if (!exo_str_is_empty (tmp))
+              if (!panel_str_is_empty (tmp))
                 {
                   g_string_append (string, "--icon ");
                   launcher_plugin_exec_append_quoted (string, tmp);
@@ -2490,13 +2510,13 @@ launcher_plugin_exec_parse (GarconMenuItem   *item,
 
             case 'c':
               tmp = garcon_menu_item_get_name (item);
-              if (!exo_str_is_empty (tmp))
+              if (!panel_str_is_empty (tmp))
                 launcher_plugin_exec_append_quoted (string, tmp);
               break;
 
             case 'k':
               uri = garcon_menu_item_get_uri (item);
-              if (!exo_str_is_empty (uri))
+              if (!panel_str_is_empty (uri))
                 launcher_plugin_exec_append_quoted (string, uri);
               g_free (uri);
               break;
@@ -2543,7 +2563,7 @@ launcher_plugin_uri_list_extract (GtkSelectionData *data)
       /* create the list of uris */
       for (i = 0; array[i] != NULL; i++)
         {
-          if (!exo_str_is_empty (array[i]))
+          if (!panel_str_is_empty (array[i]))
             list = g_slist_prepend (list, array[i]);
           else
             g_free (array[i]);
@@ -2562,14 +2582,14 @@ launcher_plugin_uri_list_extract (GtkSelectionData *data)
       for (i = 0; array[i] != NULL; i++)
         {
           /* skip empty strings */
-          if (!!exo_str_is_empty (array[i]))
+          if (!!panel_str_is_empty (array[i]))
             continue;
 
           uri = NULL;
 
           if (g_path_is_absolute (array[i]))
             uri = g_filename_to_uri (array[i], NULL, NULL);
-          else if (exo_str_looks_like_an_uri (array[i]))
+          else if (_exo_str_looks_like_an_uri (array[i]))
             uri = g_strdup (array[i]);
 
           /* append the uri if we extracted one */

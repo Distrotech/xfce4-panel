@@ -24,7 +24,6 @@
 #include <stdlib.h>
 #endif
 
-#include <exo/exo.h>
 #include <glib/gstdio.h>
 #include <xfconf/xfconf.h>
 #include <libxfce4util/libxfce4util.h>
@@ -576,7 +575,7 @@ panel_application_plugin_move (GtkWidget        *item,
   module = panel_module_get_from_plugin_provider (XFCE_PANEL_PLUGIN_PROVIDER (item));
   icon_name = panel_module_get_icon_name (module);
   theme = gtk_icon_theme_get_for_screen (gtk_widget_get_screen (item));
-  if (!exo_str_is_empty (icon_name)
+  if (!panel_str_is_empty (icon_name)
       && gtk_icon_theme_has_icon (theme, icon_name))
     gtk_drag_set_icon_name (context, icon_name, 0, 0);
   else
@@ -600,7 +599,7 @@ panel_application_plugin_delete_config (PanelApplication *application,
   gchar *filename, *path;
 
   panel_return_if_fail (PANEL_IS_APPLICATION (application));
-  panel_return_if_fail (!exo_str_is_empty (name));
+  panel_return_if_fail (!panel_str_is_empty (name));
   panel_return_if_fail (unique_id != -1);
 
   /* remove the xfconf property */
@@ -1520,7 +1519,7 @@ panel_application_new_window (PanelApplication *application,
   /* add the itembar */
   itembar = panel_itembar_new ();
   for (i = 0; i < G_N_ELEMENTS (props); i++)
-    exo_binding_new (G_OBJECT (window), props[i], G_OBJECT (itembar), props[i]);
+    g_object_bind_property (G_OBJECT (window), props[i], G_OBJECT (itembar), props[i], G_BINDING_DEFAULT);
   gtk_container_add (GTK_CONTAINER (window), itembar);
   gtk_widget_show (itembar);
 

@@ -24,7 +24,6 @@
 #include <string.h>
 #endif
 
-#include <exo/exo.h>
 #include <libxfce4ui/libxfce4ui.h>
 #include <libxfce4util/libxfce4util.h>
 
@@ -506,7 +505,7 @@ panel_item_dialog_drag_begin (GtkWidget       *treeview,
           /* set the drag icon */
           icon_name = panel_module_get_icon_name (module);
           theme = gtk_icon_theme_get_for_screen (gtk_widget_get_screen (treeview));
-          if (!exo_str_is_empty (icon_name)
+          if (!panel_str_is_empty (icon_name)
               && gtk_icon_theme_has_icon (theme, icon_name))
             gtk_drag_set_icon_name (context, icon_name, 0, 0);
           else
@@ -636,14 +635,14 @@ panel_item_dialog_compare_func (GtkTreeModel *model,
       /* don't move the separator */
       result = 0;
     }
-  else if (exo_str_is_equal (LAUNCHER_PLUGIN_NAME,
-                             panel_module_get_name (module_a)))
+  else if (g_strcmp0 (LAUNCHER_PLUGIN_NAME,
+                      panel_module_get_name (module_a)) == 0)
     {
       /* move the launcher to the first position */
       result = -1;
     }
-  else if (exo_str_is_equal (LAUNCHER_PLUGIN_NAME,
-                             panel_module_get_name (module_b)))
+  else if (g_strcmp0 (LAUNCHER_PLUGIN_NAME,
+                      panel_module_get_name (module_b)) == 0)
     {
       /* move the launcher to the first position */
       result = 1;
@@ -690,7 +689,7 @@ panel_item_dialog_visible_func (GtkTreeModel *model,
 
   /* search string from dialog */
   text = gtk_entry_get_text (entry);
-  if (G_UNLIKELY (exo_str_is_empty (text)))
+  if (G_UNLIKELY (panel_str_is_empty (text)))
     return TRUE;
 
   gtk_tree_model_get (model, iter, COLUMN_MODULE, &module, -1);
@@ -760,7 +759,7 @@ panel_item_dialog_text_renderer (GtkTreeViewColumn *column,
 
   /* avoid (null) in markup string */
   comment = panel_module_get_comment (module);
-  if (exo_str_is_empty (comment))
+  if (panel_str_is_empty (comment))
     comment = "";
 
   name = panel_module_get_display_name (module);

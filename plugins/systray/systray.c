@@ -27,7 +27,6 @@
 #include <common/panel-xfconf.h>
 #include <common/panel-utils.h>
 #include <common/panel-debug.h>
-#include <exo/exo.h>
 
 #include "systray.h"
 #include "systray-box.h"
@@ -182,28 +181,28 @@ systray_plugin_class_init (SystrayPluginClass *klass)
                                                       SIZE_MAX_MIN,
                                                       SIZE_MAX_MAX,
                                                       SIZE_MAX_DEFAULT,
-                                                      EXO_PARAM_READWRITE));
+                                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_SHOW_FRAME,
                                    g_param_spec_boolean ("show-frame",
                                                          NULL, NULL,
                                                          TRUE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_NAMES_HIDDEN,
                                    g_param_spec_boxed ("names-hidden",
                                                        NULL, NULL,
                                                        PANEL_PROPERTIES_TYPE_VALUE_ARRAY,
-                                                       EXO_PARAM_READWRITE));
+                                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_NAMES_VISIBLE,
                                    g_param_spec_boxed ("names-visible",
                                                        NULL, NULL,
                                                        PANEL_PROPERTIES_TYPE_VALUE_ARRAY,
-                                                       EXO_PARAM_READWRITE));
+                                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 }
 
 
@@ -244,7 +243,9 @@ systray_plugin_init (SystrayPlugin *plugin)
   g_signal_connect (G_OBJECT (plugin->button), "toggled",
       G_CALLBACK (systray_plugin_button_toggled), plugin);
   gtk_button_set_relief (GTK_BUTTON (plugin->button), GTK_RELIEF_NONE);
-  exo_binding_new (G_OBJECT (plugin->box), "has-hidden", G_OBJECT (plugin->button), "visible");
+  g_object_bind_property (G_OBJECT (plugin->box), "has-hidden",
+                          G_OBJECT (plugin->button), "visible",
+                          G_BINDING_SYNC_CREATE);
   xfce_panel_plugin_add_action_widget (XFCE_PANEL_PLUGIN (plugin), plugin->button);
 }
 
@@ -562,13 +563,15 @@ systray_plugin_configure_plugin (XfcePanelPlugin *panel_plugin)
 
   object = gtk_builder_get_object (builder, "size-max");
   panel_return_if_fail (GTK_IS_WIDGET (object));
-  exo_mutual_binding_new (G_OBJECT (plugin), "size-max",
-                          G_OBJECT (object), "value");
+  g_object_bind_property (G_OBJECT (plugin), "size-max",
+                          G_OBJECT (object), "value",
+                          G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
 
   object = gtk_builder_get_object (builder, "show-frame");
   panel_return_if_fail (GTK_IS_WIDGET (object));
-  exo_mutual_binding_new (G_OBJECT (plugin), "show-frame",
-                          G_OBJECT (object), "active");
+  g_object_bind_property (G_OBJECT (plugin), "show-frame",
+                          G_OBJECT (object), "active",
+                          G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
 
   store = gtk_builder_get_object (builder, "applications-store");
   panel_return_if_fail (GTK_IS_LIST_STORE (store));
@@ -760,7 +763,7 @@ systray_plugin_names_set_hidden (SystrayPlugin *plugin,
                                  gboolean       hidden)
 {
   panel_return_if_fail (XFCE_IS_SYSTRAY_PLUGIN (plugin));
-  panel_return_if_fail (!exo_str_is_empty (name));
+  panel_return_if_fail (!panel_str_is_empty (name));
 
   g_hash_table_replace (plugin->names, g_strdup (name),
                         GUINT_TO_POINTER (hidden ? 1 : 0));
@@ -779,7 +782,7 @@ systray_plugin_names_get_hidden (SystrayPlugin *plugin,
 {
   gpointer p;
 
-  if (exo_str_is_empty (name))
+  if (panel_str_is_empty (name))
     return FALSE;
 
   /* lookup the name in the table */
@@ -880,7 +883,7 @@ systray_plugin_dialog_camel_case (const gchar *text)
   gunichar     c;
   GString     *result;
 
-  panel_return_val_if_fail (!exo_str_is_empty (text), NULL);
+  panel_return_val_if_fail (!panel_str_is_empty (text), NULL);
 
   /* allocate a new string for the result */
   result = g_string_sized_new (32);
@@ -932,7 +935,7 @@ systray_plugin_dialog_add_application_names (gpointer key,
   panel_return_if_fail (name == NULL || g_utf8_validate (name, -1, NULL));
 
   /* skip invalid names */
-  if (exo_str_is_empty (name))
+  if (panel_str_is_empty (name))
      return;
 
   /* check if we have a better name for the application */

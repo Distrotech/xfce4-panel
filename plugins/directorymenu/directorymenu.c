@@ -21,7 +21,6 @@
 #endif
 
 #include <gio/gio.h>
-#include <exo/exo.h>
 #include <libxfce4ui/libxfce4ui.h>
 #include <libxfce4util/libxfce4util.h>
 #include <libxfce4panel/libxfce4panel.h>
@@ -127,28 +126,28 @@ directory_menu_plugin_class_init (DirectoryMenuPluginClass *klass)
                                    g_param_spec_string ("base-directory",
                                                         NULL, NULL,
                                                         NULL,
-                                                        EXO_PARAM_READWRITE));
+                                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_ICON_NAME,
                                    g_param_spec_string ("icon-name",
                                                         NULL, NULL,
                                                         NULL,
-                                                        EXO_PARAM_READWRITE));
+                                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_FILE_PATTERN,
                                    g_param_spec_string ("file-pattern",
                                                         NULL, NULL,
                                                         "",
-                                                        EXO_PARAM_READWRITE));
+                                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_HIDDEN_FILES,
                                    g_param_spec_boolean ("hidden-files",
                                                          NULL, NULL,
                                                          FALSE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   menu_file = g_quark_from_static_string ("dir-menu-file");
 
@@ -201,7 +200,7 @@ directory_menu_plugin_get_property (GObject    *object,
       break;
 
     case PROP_FILE_PATTERN:
-      g_value_set_string (value, exo_str_is_empty (plugin->file_pattern) ?
+      g_value_set_string (value, panel_str_is_empty (plugin->file_pattern) ?
           "" : plugin->file_pattern);
       break;
 
@@ -233,7 +232,7 @@ directory_menu_plugin_set_property (GObject      *object,
     {
     case PROP_BASE_DIRECTORY:
       path = g_value_get_string (value);
-      if (exo_str_is_empty (path))
+      if (panel_str_is_empty (path))
         path = g_get_home_dir ();
 
       if (plugin->base_directory != NULL)
@@ -252,7 +251,7 @@ directory_menu_plugin_set_property (GObject      *object,
       g_free (plugin->icon_name);
       plugin->icon_name = g_value_dup_string (value);
       xfce_panel_image_set_from_source (XFCE_PANEL_IMAGE (plugin->icon),
-          exo_str_is_empty (plugin->icon_name) ? DEFAULT_ICON_NAME : plugin->icon_name);
+          panel_str_is_empty (plugin->icon_name) ? DEFAULT_ICON_NAME : plugin->icon_name);
       break;
 
     case PROP_FILE_PATTERN:
@@ -265,7 +264,7 @@ directory_menu_plugin_set_property (GObject      *object,
       if (G_LIKELY (array != NULL))
         {
           for (i = 0; array[i] != NULL; i++)
-            if (!exo_str_is_empty (array[i]))
+            if (!panel_str_is_empty (array[i]))
                 plugin->patterns = g_slist_prepend (plugin->patterns,
                     g_pattern_spec_new (array[i]));
 
@@ -379,6 +378,7 @@ static void
 directory_menu_plugin_configure_plugin_icon_chooser (GtkWidget           *button,
                                                      DirectoryMenuPlugin *plugin)
 {
+#ifdef EXO_CHECK_VERSION
   GtkWidget *chooser;
   gchar     *icon;
 
@@ -395,7 +395,7 @@ directory_menu_plugin_configure_plugin_icon_chooser (GtkWidget           *button
                                            GTK_RESPONSE_ACCEPT,
                                            GTK_RESPONSE_CANCEL, -1);
 
-  if (!exo_str_is_empty (plugin->icon_name))
+  if (!panel_str_is_empty (plugin->icon_name))
   exo_icon_chooser_dialog_set_icon (EXO_ICON_CHOOSER_DIALOG (chooser), plugin->icon_name);
 
   if (gtk_dialog_run (GTK_DIALOG (chooser)) == GTK_RESPONSE_ACCEPT)
@@ -407,6 +407,7 @@ directory_menu_plugin_configure_plugin_icon_chooser (GtkWidget           *button
     }
 
   gtk_widget_destroy (chooser);
+#endif
 }
 
 
@@ -419,7 +420,7 @@ directory_menu_plugin_configure_plugin (XfcePanelPlugin *panel_plugin)
   GObject             *dialog, *object;
   const gchar         *icon_name = plugin->icon_name;
 
-  if (exo_str_is_empty (icon_name))
+  if (panel_str_is_empty (icon_name))
     icon_name = DEFAULT_ICON_NAME;
 
   /* setup the dialog */
@@ -450,13 +451,15 @@ directory_menu_plugin_configure_plugin (XfcePanelPlugin *panel_plugin)
 
   object = gtk_builder_get_object (builder, "file-pattern");
   panel_return_if_fail (GTK_IS_ENTRY (object));
-  exo_mutual_binding_new (G_OBJECT (plugin), "file-pattern",
-                          G_OBJECT (object), "text");
+  g_object_bind_property (G_OBJECT (plugin), "file-pattern",
+                          G_OBJECT (object), "text",
+                          G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
 
   object = gtk_builder_get_object (builder, "hidden-files");
   panel_return_if_fail (GTK_IS_CHECK_BUTTON (object));
-  exo_mutual_binding_new (G_OBJECT (plugin), "hidden-files",
-                          G_OBJECT (object), "active");
+  g_object_bind_property (G_OBJECT (plugin), "hidden-files",
+                          G_OBJECT (object), "active",
+                          G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
 
   gtk_widget_show (GTK_WIDGET (dialog));
 }
@@ -510,7 +513,7 @@ directory_menu_plugin_selection_done (GtkWidget *menu,
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (button), FALSE);
 
   /* delay destruction so we can handle the activate event first */
-  exo_gtk_object_destroy_later (GTK_OBJECT (menu));
+  panel_utils_destroy_later (GTK_WIDGET (menu));
 }
 
 
@@ -709,8 +712,11 @@ directory_menu_plugin_menu_open (GtkWidget   *mi,
     }
 
   if (!result
+#ifdef EXO_CHECK_VERSION
       && !exo_execute_preferred_application_on_screen (category, NULL, working_dir, NULL,
-                                                       gtk_widget_get_screen (mi), &error))
+                                                       gtk_widget_get_screen (mi), &error)
+#endif
+     )
     {
       xfce_dialog_show_error (NULL, error,
           _("Failed to execute the preferred application for category \"%s\""), category);
@@ -751,7 +757,7 @@ directory_menu_plugin_menu_unload (GtkWidget *menu)
 {
   /* delay destruction so we can handle the activate event first */
   gtk_container_foreach (GTK_CONTAINER (menu),
-     (GtkCallback) exo_gtk_object_destroy_later, NULL);
+     (GtkCallback) panel_utils_destroy_later, NULL);
 }
 
 
@@ -898,7 +904,7 @@ directory_menu_plugin_menu_load (GtkWidget           *menu,
                   icon = g_app_info_get_icon (G_APP_INFO (desktopinfo));
 
                   /* ignore invalid or hidden files */
-                  if (exo_str_is_empty (display_name)
+                  if (panel_str_is_empty (display_name)
                       || g_desktop_app_info_get_is_hidden (desktopinfo))
                     {
                       g_object_unref (G_OBJECT (desktopinfo));
@@ -939,7 +945,7 @@ directory_menu_plugin_menu_load (GtkWidget           *menu,
           else if (G_UNLIKELY (desktopinfo != NULL))
             {
               description = g_app_info_get_description (G_APP_INFO (desktopinfo));
-              if (!exo_str_is_empty (description))
+              if (!panel_str_is_empty (description))
                 gtk_widget_set_tooltip_text (mi, description);
 
               g_signal_connect_data (G_OBJECT (mi), "activate",

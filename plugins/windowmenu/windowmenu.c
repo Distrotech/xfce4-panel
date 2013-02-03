@@ -20,7 +20,6 @@
 #include <config.h>
 #endif
 
-#include <exo/exo.h>
 #include <libxfce4ui/libxfce4ui.h>
 #include <libxfce4panel/libxfce4panel.h>
 #include <libwnck/libwnck.h>
@@ -171,35 +170,35 @@ window_menu_plugin_class_init (WindowMenuPluginClass *klass)
                                                       BUTTON_STYLE_ICON,
                                                       BUTTON_STYLE_ARROW,
                                                       BUTTON_STYLE_ICON,
-                                                      EXO_PARAM_READWRITE));
+                                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_WORKSPACE_ACTIONS,
                                    g_param_spec_boolean ("workspace-actions",
                                                          NULL, NULL,
                                                          FALSE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_WORKSPACE_NAMES,
                                    g_param_spec_boolean ("workspace-names",
                                                          NULL, NULL,
                                                          TRUE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_URGENTCY_NOTIFICATION,
                                    g_param_spec_boolean ("urgentcy-notification",
                                                          NULL, NULL,
                                                          TRUE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_ALL_WORKSPACES,
                                    g_param_spec_boolean ("all-workspaces",
                                                          NULL, NULL,
                                                          TRUE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   gtk_widget_class_install_style_property (gtkwidget_class,
                                            g_param_spec_int ("minimized-icon-lucency",
@@ -207,7 +206,7 @@ window_menu_plugin_class_init (WindowMenuPluginClass *klass)
                                                              "Lucent percentage of minimized icons",
                                                              0, 100,
                                                              DEFAULT_ICON_LUCENCY,
-                                                             EXO_PARAM_READABLE));
+                                                             G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   gtk_widget_class_install_style_property (gtkwidget_class,
                                            g_param_spec_enum ("ellipsize-mode",
@@ -215,7 +214,7 @@ window_menu_plugin_class_init (WindowMenuPluginClass *klass)
                                                               "The ellipsize mode used for the menu label",
                                                               PANGO_TYPE_ELLIPSIZE_MODE,
                                                               DEFAULT_ELLIPSIZE_MODE,
-                                                              EXO_PARAM_READABLE));
+                                                              G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   gtk_widget_class_install_style_property (gtkwidget_class,
                                            g_param_spec_int ("max-width-chars",
@@ -223,7 +222,7 @@ window_menu_plugin_class_init (WindowMenuPluginClass *klass)
                                                              "Maximum length of window/workspace name",
                                                              1, G_MAXINT,
                                                              DEFAULT_MAX_WIDTH_CHARS,
-                                                             EXO_PARAM_READABLE));
+                                                             G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   window_quark = g_quark_from_static_string ("window-list-window-quark");
 
@@ -565,8 +564,9 @@ window_menu_plugin_configure_plugin (XfcePanelPlugin *panel_plugin)
     {
       object = gtk_builder_get_object (builder, names[i]);
       panel_return_if_fail (GTK_IS_WIDGET (object));
-      exo_mutual_binding_new (G_OBJECT (plugin), names[i],
-                              G_OBJECT (object), "active");
+      g_object_bind_property (G_OBJECT (plugin), names[i],
+                              G_OBJECT (object), "active",
+                              G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
     }
 
   gtk_widget_show (GTK_WIDGET (dialog));
@@ -849,11 +849,11 @@ window_menu_plugin_menu_workspace_item_new (WnckWorkspace        *workspace,
 
   /* try to get an utf-8 valid name */
   name = wnck_workspace_get_name (workspace);
-  if (!exo_str_is_empty (name)
+  if (!panel_str_is_empty (name)
       && !g_utf8_validate (name, -1, NULL))
     name = utf8 = g_locale_to_utf8 (name, -1, NULL, NULL, NULL);
 
-  if (exo_str_is_empty (name))
+  if (panel_str_is_empty (name))
     name = name_num = g_strdup_printf (_("Workspace %d"),
         wnck_workspace_get_number (workspace) + 1);
 
@@ -959,10 +959,10 @@ window_menu_plugin_menu_window_item_new (WnckWindow           *window,
 
   /* try to get an utf-8 valid name */
   name = wnck_window_get_name (window);
-  if (!exo_str_is_empty (name) && !g_utf8_validate (name, -1, NULL))
+  if (!panel_str_is_empty (name) && !g_utf8_validate (name, -1, NULL))
     name = utf8 = g_locale_to_utf8 (name, -1, NULL, NULL, NULL);
 
-  if (exo_str_is_empty (name))
+  if (panel_str_is_empty (name))
     name = "?";
 
   /* store the tooltip text */
@@ -1020,9 +1020,11 @@ window_menu_plugin_menu_window_item_new (WnckWindow           *window,
           if (wnck_window_is_minimized (window)
               && plugin->minimized_icon_lucency < 100)
             {
+#ifdef EXO_CHECK_VERSION
               lucent = exo_gdk_pixbuf_lucent (pixbuf, plugin->minimized_icon_lucency);
               if (G_LIKELY (lucent != NULL))
                 pixbuf = lucent;
+#endif
             }
 
           /* set the menu item label */
@@ -1053,7 +1055,7 @@ window_menu_plugin_menu_selection_done (GtkWidget *menu,
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (button), FALSE);
 
   /* delay destruction so we can handle the activate event first */
-  exo_gtk_object_destroy_later (GTK_OBJECT (menu));
+  panel_utils_destroy_later (GTK_WIDGET (menu));
 }
 
 
@@ -1314,12 +1316,12 @@ window_menu_plugin_menu_new (WindowMenuPlugin *plugin)
         {
           /* try to get an utf-8 valid name */
           name = wnck_workspace_get_name (workspace);
-          if (!exo_str_is_empty (name) && !g_utf8_validate (name, -1, NULL))
+          if (!panel_str_is_empty (name) && !g_utf8_validate (name, -1, NULL))
             name = utf8 = g_locale_to_utf8 (name, -1, NULL, NULL, NULL);
         }
 
       /* create label */
-      if (!exo_str_is_empty (name))
+      if (!panel_str_is_empty (name))
         label = g_strdup_printf (_("Remove Workspace \"%s\""), name);
       else
         label = g_strdup_printf (_("Remove Workspace %d"), n_workspaces);

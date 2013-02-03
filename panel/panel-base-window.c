@@ -24,7 +24,8 @@
 #include <math.h>
 #endif
 
-#include <exo/exo.h>
+#include <gtk/gtk.h>
+
 #include <libxfce4panel/libxfce4panel.h>
 #include <libxfce4panel/xfce-panel-plugin-provider.h>
 #include <common/panel-private.h>
@@ -128,21 +129,21 @@ panel_base_window_class_init (PanelBaseWindowClass *klass)
                                    g_param_spec_uint ("enter-opacity",
                                                       NULL, NULL,
                                                       0, 100, 100,
-                                                      EXO_PARAM_READWRITE));
+                                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_LEAVE_OPACITY,
                                    g_param_spec_uint ("leave-opacity",
                                                       NULL, NULL,
                                                       0, 100, 100,
-                                                      EXO_PARAM_READWRITE));
+                                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_BACKGROUND_ALPHA,
                                    g_param_spec_uint ("background-alpha",
                                                       NULL, NULL,
                                                       0, 100, 100,
-                                                      EXO_PARAM_READWRITE));
+                                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_BACKGROUND_STYLE,
@@ -151,21 +152,21 @@ panel_base_window_class_init (PanelBaseWindowClass *klass)
                                                       PANEL_BG_STYLE_NONE,
                                                       PANEL_BG_STYLE_IMAGE,
                                                       PANEL_BG_STYLE_NONE,
-                                                      EXO_PARAM_READWRITE));
+                                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_BACKGROUND_COLOR,
                                    g_param_spec_boxed ("background-color",
                                                        NULL, NULL,
                                                        GDK_TYPE_COLOR,
-                                                       EXO_PARAM_READWRITE));
+                                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_BACKGROUND_IMAGE,
                                    g_param_spec_string ("background-image",
                                                         NULL, NULL,
                                                         NULL,
-                                                        EXO_PARAM_READWRITE));
+                                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_BORDERS,
@@ -173,21 +174,21 @@ panel_base_window_class_init (PanelBaseWindowClass *klass)
                                                       NULL, NULL,
                                                       0, G_MAXUINT,
                                                       PANEL_BORDER_NONE,
-                                                      EXO_PARAM_READWRITE));
+                                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_ACTIVE,
                                    g_param_spec_boolean ("active",
                                                          NULL, NULL,
                                                          FALSE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_COMPOSITED,
                                    g_param_spec_boolean ("composited",
                                                          NULL, NULL,
                                                          FALSE,
-                                                         EXO_PARAM_READABLE));
+                                                         G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 }
 
 

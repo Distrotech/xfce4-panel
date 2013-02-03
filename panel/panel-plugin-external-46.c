@@ -30,7 +30,6 @@
 #include <math.h>
 #endif
 
-#include <exo/exo.h>
 #include <gdk/gdk.h>
 #include <gdk/gdkx.h>
 #include <libxfce4util/libxfce4util.h>

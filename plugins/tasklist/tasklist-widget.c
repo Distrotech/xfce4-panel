@@ -28,7 +28,7 @@
 #endif
 
 #include <gtk/gtk.h>
-#include <exo/exo.h>
+#include <libxfce4ui/libxfce4ui.h>
 #include <libwnck/libwnck.h>
 #include <libxfce4panel/libxfce4panel.h>
 #include <common/panel-private.h>
@@ -391,63 +391,63 @@ xfce_tasklist_class_init (XfceTasklistClass *klass)
                                                       XFCE_TASKLIST_GROUPING_MIN,
                                                       XFCE_TASKLIST_GROUPING_MAX + 1 /* TODO drop this later */,
                                                       XFCE_TASKLIST_GROUPING_DEFAULT,
-                                                      EXO_PARAM_READWRITE));
+                                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_INCLUDE_ALL_WORKSPACES,
                                    g_param_spec_boolean ("include-all-workspaces",
                                                          NULL, NULL,
                                                          FALSE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_INCLUDE_ALL_MONITORS,
                                    g_param_spec_boolean ("include-all-monitors",
                                                          NULL, NULL,
                                                          TRUE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_FLAT_BUTTONS,
                                    g_param_spec_boolean ("flat-buttons",
                                                          NULL, NULL,
                                                          FALSE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_SWITCH_WORKSPACE_ON_UNMINIMIZE,
                                    g_param_spec_boolean ("switch-workspace-on-unminimize",
                                                          NULL, NULL,
                                                          TRUE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_SHOW_LABELS,
                                    g_param_spec_boolean ("show-labels",
                                                          NULL, NULL,
                                                          TRUE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_SHOW_ONLY_MINIMIZED,
                                    g_param_spec_boolean ("show-only-minimized",
                                                          NULL, NULL,
                                                          FALSE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_SHOW_WIREFRAMES,
                                    g_param_spec_boolean ("show-wireframes",
                                                          NULL, NULL,
                                                          FALSE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_SHOW_HANDLE,
                                    g_param_spec_boolean ("show-handle",
                                                          NULL, NULL,
                                                          TRUE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_SORT_ORDER,
@@ -456,21 +456,21 @@ xfce_tasklist_class_init (XfceTasklistClass *klass)
                                                       XFCE_TASKLIST_SORT_ORDER_MIN,
                                                       XFCE_TASKLIST_SORT_ORDER_MAX,
                                                       XFCE_TASKLIST_SORT_ORDER_DEFAULT,
-                                                      EXO_PARAM_READWRITE));
+                                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_WINDOW_SCROLLING,
                                    g_param_spec_boolean ("window-scrolling",
                                                          NULL, NULL,
                                                          TRUE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_INCLUDE_ALL_BLINKING,
                                    g_param_spec_boolean ("include-all-blinking",
                                                          NULL, NULL,
                                                          TRUE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   gtk_widget_class_install_style_property (gtkwidget_class,
                                            g_param_spec_int ("max-button-length",
@@ -478,7 +478,7 @@ xfce_tasklist_class_init (XfceTasklistClass *klass)
                                                              "The maximum length of a window button",
                                                              -1, G_MAXINT,
                                                              DEFAULT_MAX_BUTTON_LENGTH,
-                                                             EXO_PARAM_READABLE));
+                                                             G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   gtk_widget_class_install_style_property (gtkwidget_class,
                                            g_param_spec_int ("min-button-length",
@@ -486,7 +486,7 @@ xfce_tasklist_class_init (XfceTasklistClass *klass)
                                                              "The minumum length of a window button",
                                                              1, G_MAXINT,
                                                              DEFAULT_MIN_BUTTON_LENGTH,
-                                                             EXO_PARAM_READABLE));
+                                                             G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   gtk_widget_class_install_style_property (gtkwidget_class,
                                            g_param_spec_int ("max-button-size",
@@ -494,7 +494,7 @@ xfce_tasklist_class_init (XfceTasklistClass *klass)
                                                              "The maximum size of a window button",
                                                              1, G_MAXINT,
                                                              DEFAULT_BUTTON_SIZE,
-                                                             EXO_PARAM_READABLE));
+                                                             G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   gtk_widget_class_install_style_property (gtkwidget_class,
                                            g_param_spec_enum ("ellipsize-mode",
@@ -502,7 +502,7 @@ xfce_tasklist_class_init (XfceTasklistClass *klass)
                                                               "The ellipsize mode used for the button label",
                                                               PANGO_TYPE_ELLIPSIZE_MODE,
                                                               DEFAULT_ELLIPSIZE_MODE,
-                                                              EXO_PARAM_READABLE));
+                                                              G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   gtk_widget_class_install_style_property (gtkwidget_class,
                                            g_param_spec_int ("minimized-icon-lucency",
@@ -510,14 +510,14 @@ xfce_tasklist_class_init (XfceTasklistClass *klass)
                                                              "Lucent percentage of minimized icons",
                                                              0, 100,
                                                              DEFAULT_ICON_LUCENCY,
-                                                             EXO_PARAM_READABLE));
+                                                             G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
   gtk_widget_class_install_style_property (gtkwidget_class,
                                            g_param_spec_int ("menu-max-width-chars",
                                                              NULL,
                                                              "Maximum chars in the overflow menu labels",
                                                              0, G_MAXINT,
                                                              DEFAULT_MENU_MAX_WIDTH_CHARS,
-                                                             EXO_PARAM_READABLE));
+                                                             G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   menu_icon_size = gtk_icon_size_from_name ("panel-tasklist-menu");
   if (menu_icon_size == GTK_ICON_SIZE_INVALID)
@@ -2321,10 +2321,10 @@ xfce_tasklist_button_compare (gconstpointer child_a,
             name_b = wnck_class_group_get_name (class_group_b);
 
           /* if there is no class group name, use the window name */
-          if (exo_str_is_empty (name_a)
+          if (panel_str_is_empty (name_a)
               && a->window != NULL)
             name_a = wnck_window_get_name (a->window);
-          if (exo_str_is_empty (name_b)
+          if (panel_str_is_empty (name_b)
               && b->window != NULL)
             name_b = wnck_window_get_name (b->window) ;
 
@@ -2412,9 +2412,11 @@ xfce_tasklist_button_icon_changed (WnckWindow        *window,
       && tasklist->minimized_icon_lucency < 100
       && wnck_window_is_minimized (window))
     {
+#ifdef EXO_CHECK_VERSION
       lucent = exo_gdk_pixbuf_lucent (pixbuf, tasklist->minimized_icon_lucency);
       if (G_UNLIKELY (lucent != NULL))
         pixbuf = lucent;
+#endif
     }
 
   xfce_panel_image_set_from_pixbuf (XFCE_PANEL_IMAGE (child->icon), pixbuf);
@@ -2756,8 +2758,12 @@ xfce_tasklist_button_proxy_menu_item (XfceTasklistChild *child,
   panel_return_val_if_fail (WNCK_IS_WINDOW (child->window), NULL);
 
   mi = gtk_image_menu_item_new ();
-  exo_binding_new (G_OBJECT (child->label), "label", G_OBJECT (mi), "label");
-  exo_binding_new (G_OBJECT (child->label), "label", G_OBJECT (mi), "tooltip-text");
+  g_object_bind_property (G_OBJECT (child->label), "label",
+                          G_OBJECT (mi), "label",
+                          G_BINDING_SYNC_CREATE);
+  g_object_bind_property (G_OBJECT (child->label), "label",
+                          G_OBJECT (mi), "tooltip-text",
+                          G_BINDING_SYNC_CREATE);
 
   label = gtk_bin_get_child (GTK_BIN (mi));
   panel_return_val_if_fail (GTK_IS_LABEL (label), NULL);
@@ -2769,7 +2775,9 @@ xfce_tasklist_button_proxy_menu_item (XfceTasklistChild *child,
       image = xfce_panel_image_new ();
       gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (mi), image);
       xfce_panel_image_set_size (XFCE_PANEL_IMAGE (image), tasklist->menu_icon_size);
-      exo_binding_new (G_OBJECT (child->icon), "pixbuf", G_OBJECT (image), "pixbuf");
+      g_object_bind_property (G_OBJECT (child->icon), "pixbuf",
+                              G_OBJECT (image), "pixbuf",
+                              G_BINDING_SYNC_CREATE);
       gtk_widget_show (image);
     }
 
@@ -3384,7 +3392,7 @@ xfce_tasklist_group_button_name_changed (WnckClassGroup    *class_group,
 
   /* create the button label */
   name = wnck_class_group_get_name (group_child->class_group);
-  if (!exo_str_is_empty (name))
+  if (!panel_str_is_empty (name))
     label = g_strdup_printf ("%s (%d)", name, n_windows);
   else
     label = g_strdup_printf ("(%d)", n_windows);

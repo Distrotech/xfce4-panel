@@ -30,7 +30,6 @@
 #include <sys/wait.h>
 #endif
 
-#include <exo/exo.h>
 #include <gdk/gdk.h>
 #include <gdk/gdkx.h>
 #include <libxfce4util/libxfce4util.h>
@@ -40,6 +39,7 @@
 #include <common/panel-private.h>
 #include <common/panel-dbus.h>
 #include <common/panel-debug.h>
+#include <common/panel-utils.h>
 
 #include <libxfce4panel/libxfce4panel.h>
 #include <libxfce4panel/xfce-panel-plugin-provider.h>
@@ -170,7 +170,7 @@ panel_plugin_external_class_init (PanelPluginExternalClass *klass)
                                    g_param_spec_int ("unique-id",
                                                      NULL, NULL,
                                                      -1, G_MAXINT, -1,
-                                                     EXO_PARAM_READWRITE
+                                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS
                                                      | G_PARAM_CONSTRUCT_ONLY));
 
   g_object_class_install_property (gobject_class,
@@ -178,7 +178,7 @@ panel_plugin_external_class_init (PanelPluginExternalClass *klass)
                                    g_param_spec_object ("module",
                                                         NULL, NULL,
                                                         PANEL_TYPE_MODULE,
-                                                        EXO_PARAM_READWRITE
+                                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS
                                                         | G_PARAM_CONSTRUCT_ONLY));
 
   g_object_class_install_property (gobject_class,
@@ -186,7 +186,7 @@ panel_plugin_external_class_init (PanelPluginExternalClass *klass)
                                    g_param_spec_boxed ("arguments",
                                                        NULL, NULL,
                                                        G_TYPE_STRV,
-                                                       EXO_PARAM_READWRITE
+                                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS
                                                        | G_PARAM_CONSTRUCT_ONLY));
 }
 
@@ -745,7 +745,7 @@ panel_plugin_external_child_watch (GPid     pid,
                                                   PROVIDER_SIGNAL_REMOVE_PLUGIN);
 
           /* wait until everything is settled before we destroy */
-          exo_gtk_object_destroy_later (GTK_OBJECT (external));
+          panel_utils_destroy_later (GTK_WIDGET (external));
           goto close_pid;
         }
     }

@@ -25,7 +25,6 @@
 #endif
 
 #include <libxfce4ui/libxfce4ui.h>
-#include <exo/exo.h>
 
 #include <common/panel-private.h>
 #include <common/panel-utils.h>
@@ -200,4 +199,25 @@ panel_utils_set_atk_info (GtkWidget   *widget,
       if (description != NULL)
         atk_object_set_description (object, description);
     }
+}
+
+
+
+static gboolean
+destroy_later (gpointer widget)
+{
+  gtk_widget_destroy (GTK_WIDGET (widget));
+  g_object_unref (G_OBJECT (widget));
+  return FALSE;
+}
+
+
+
+void
+panel_utils_destroy_later (GtkWidget *widget)
+{
+  panel_return_if_fail (GTK_IS_WIDGET (widget));
+
+  g_idle_add_full (G_PRIORITY_HIGH, destroy_later, widget, NULL);
+  g_object_ref_sink (G_OBJECT (widget));
 }

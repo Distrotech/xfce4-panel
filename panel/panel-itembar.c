@@ -23,7 +23,6 @@
 
 #include <math.h>
 #include <gtk/gtk.h>
-#include <exo/exo.h>
 
 #include <common/panel-private.h>
 #include <libxfce4panel/libxfce4panel.h>
@@ -187,42 +186,42 @@ panel_itembar_class_init (PanelItembarClass *klass)
                                                       NULL, NULL,
                                                       XFCE_TYPE_PANEL_PLUGIN_MODE,
                                                       XFCE_PANEL_PLUGIN_MODE_HORIZONTAL,
-                                                      EXO_PARAM_WRITABLE));
+                                                      G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_SIZE,
                                    g_param_spec_uint ("size",
                                                       NULL, NULL,
                                                       16, 128, 30,
-                                                      EXO_PARAM_WRITABLE));
+                                                      G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_NROWS,
                                    g_param_spec_uint ("nrows",
                                                       NULL, NULL,
                                                       1, 6, 1,
-                                                      EXO_PARAM_WRITABLE));
+                                                      G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
 
   gtk_container_class_install_child_property (gtkcontainer_class,
                                               CHILD_PROP_EXPAND,
                                               g_param_spec_boolean ("expand",
                                                                     NULL, NULL,
                                                                     FALSE,
-                                                                    EXO_PARAM_READWRITE));
+                                                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   gtk_container_class_install_child_property (gtkcontainer_class,
                                               CHILD_PROP_SHRINK,
                                               g_param_spec_boolean ("shrink",
                                                                     NULL, NULL,
                                                                     FALSE,
-                                                                    EXO_PARAM_READWRITE));
+                                                                    G_PARAM_READWRITE| G_PARAM_STATIC_STRINGS));
 
   gtk_container_class_install_child_property (gtkcontainer_class,
                                               CHILD_PROP_SMALL,
                                               g_param_spec_boolean ("small",
                                                                     NULL, NULL,
                                                                     FALSE,
-                                                                    EXO_PARAM_READWRITE));
+                                                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 }
 
 

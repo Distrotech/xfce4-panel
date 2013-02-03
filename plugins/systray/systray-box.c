@@ -27,7 +27,6 @@
 #include <math.h>
 #endif
 
-#include <exo/exo.h>
 #include <gtk/gtk.h>
 #include <libxfce4panel/libxfce4panel.h>
 #include <common/panel-private.h>
@@ -134,7 +133,7 @@ systray_box_class_init (SystrayBoxClass *klass)
                                    g_param_spec_boolean ("has-hidden",
                                                          NULL, NULL,
                                                          FALSE,
-                                                         EXO_PARAM_READABLE));
+                                                         G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 }
 
 
