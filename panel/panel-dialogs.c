@@ -36,6 +36,7 @@
 
 
 
+#ifn GTK_CHECK_VERSION (3, 0, 0)
 static void
 panel_dialogs_show_about_email_hook (GtkAboutDialog *dialog,
                                      const gchar    *uri,
@@ -56,6 +57,7 @@ panel_dialogs_show_about_email_hook (GtkAboutDialog *dialog,
       g_error_free (error);
     }
 }
+#endif
 
 
 
@@ -76,7 +78,9 @@ panel_dialogs_show_about (void)
                                 "Jasper Huijsmans <jasper@xfce.org>",
                                 "Tic-tac-toe <tictactoe@xfce.org>");
 
+#ifn GTK_CHECK_VERSION (3, 0, 0)
   gtk_about_dialog_set_email_hook (panel_dialogs_show_about_email_hook, NULL, NULL);
+#endif
 
   gtk_show_about_dialog (NULL,
                          "authors", authors,

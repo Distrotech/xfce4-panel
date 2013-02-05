@@ -105,28 +105,32 @@ enum
 
 
 
-static void       xfce_panel_image_get_property  (GObject         *object,
-                                                  guint            prop_id,
-                                                  GValue          *value,
-                                                  GParamSpec      *pspec);
-static void       xfce_panel_image_set_property  (GObject         *object,
-                                                  guint            prop_id,
-                                                  const GValue    *value,
-                                                  GParamSpec      *pspec);
-static void       xfce_panel_image_finalize      (GObject         *object);
-static void       xfce_panel_image_size_request  (GtkWidget       *widget,
-                                                  GtkRequisition  *requisition);
-static void       xfce_panel_image_size_allocate (GtkWidget       *widget,
-                                                  GtkAllocation   *allocation);
-static gboolean   xfce_panel_image_expose_event  (GtkWidget       *widget,
-                                                  GdkEventExpose  *event);
-static void       xfce_panel_image_style_set     (GtkWidget       *widget,
-                                                  GtkStyle        *previous_style);
-static gboolean   xfce_panel_image_load          (gpointer         data);
-static void       xfce_panel_image_load_destroy  (gpointer         data);
-static GdkPixbuf *xfce_panel_image_scale_pixbuf  (GdkPixbuf       *source,
-                                                  gint             dest_width,
-                                                  gint             dest_height);
+static void       xfce_panel_image_get_property         (GObject         *object,
+                                                         guint            prop_id,
+                                                         GValue          *value,
+                                                         GParamSpec      *pspec);
+static void       xfce_panel_image_set_property         (GObject         *object,
+                                                         guint            prop_id,
+                                                         const GValue    *value,
+                                                         GParamSpec      *pspec);
+static void       xfce_panel_image_finalize             (GObject         *object);
+static void       xfce_panel_image_get_preferred_width  (GtkWidget       *widget,
+                                                         gint            *minimal_width,
+                                                         gint            *natural_width);
+static void       xfce_panel_image_get_preferred_height (GtkWidget       *widget,
+                                                         gint            *minimal_height,
+                                                         gint            *natural_height);
+static void       xfce_panel_image_size_allocate        (GtkWidget       *widget,
+                                                         GtkAllocation   *allocation);
+static gboolean   xfce_panel_image_draw                 (GtkWidget       *widget,
+                                                         cairo_t         *cr);
+static void       xfce_panel_image_style_set            (GtkWidget       *widget,
+                                                         GtkStyle        *previous_style);
+static gboolean   xfce_panel_image_load                 (gpointer         data);
+static void       xfce_panel_image_load_destroy         (gpointer         data);
+static GdkPixbuf *xfce_panel_image_scale_pixbuf         (GdkPixbuf       *source,
+                                                         gint             dest_width,
+                                                         gint             dest_height);
 
 
 
@@ -143,14 +147,15 @@ xfce_panel_image_class_init (XfcePanelImageClass *klass)
   g_type_class_add_private (klass, sizeof (XfcePanelImagePrivate));
 
   gobject_class = G_OBJECT_CLASS (klass);
-  gobject_class->get_property = xfce_panel_image_get_property;
   gobject_class->set_property = xfce_panel_image_set_property;
+  gobject_class->get_property = xfce_panel_image_get_property;
   gobject_class->finalize = xfce_panel_image_finalize;
 
   gtkwidget_class = GTK_WIDGET_CLASS (klass);
-  gtkwidget_class->size_request = xfce_panel_image_size_request;
+  gtkwidget_class->get_preferred_width = xfce_panel_image_get_preferred_width;
+  gtkwidget_class->get_preferred_height = xfce_panel_image_get_preferred_height;
   gtkwidget_class->size_allocate = xfce_panel_image_size_allocate;
-  gtkwidget_class->expose_event = xfce_panel_image_expose_event;
+  gtkwidget_class->draw = xfce_panel_image_draw;
   gtkwidget_class->style_set = xfce_panel_image_style_set;
 
   g_object_class_install_property (gobject_class,
@@ -194,7 +199,7 @@ xfce_panel_image_class_init (XfcePanelImageClass *klass)
 static void
 xfce_panel_image_init (XfcePanelImage *image)
 {
-  GTK_WIDGET_SET_FLAGS (image, GTK_NO_WINDOW);
+  gtk_widget_set_has_window (GTK_WIDGET (image), FALSE);
 
   image->priv = G_TYPE_INSTANCE_GET_PRIVATE (image, XFCE_TYPE_PANEL_IMAGE, XfcePanelImagePrivate);
 
@@ -280,27 +285,48 @@ xfce_panel_image_finalize (GObject *object)
 
 
 
-static void
-xfce_panel_image_size_request (GtkWidget      *widget,
-                               GtkRequisition *requisition)
+static void       
+xfce_panel_image_get_preferred_width (GtkWidget *widget,
+                                      gint      *minimal_width,
+                                      gint      *natural_width)
 {
   XfcePanelImagePrivate *priv = XFCE_PANEL_IMAGE (widget)->priv;
+  GtkAllocation          alloc;
 
   if (priv->size > 0)
-    {
-      requisition->width = priv->size;
-      requisition->height = priv->size;
-    }
+    *minimal_width = priv->size;
   else if (priv->pixbuf != NULL)
-    {
-      requisition->width = gdk_pixbuf_get_width (priv->pixbuf);
-      requisition->height = gdk_pixbuf_get_height (priv->pixbuf);
-    }
+    *minimal_width = gdk_pixbuf_get_width (priv->pixbuf);
   else
     {
-      requisition->width = widget->allocation.width;
-      requisition->height = widget->allocation.height;
+      gtk_widget_get_allocation (widget, &alloc);
+      *minimal_width = alloc.width;
     }
+
+  *natural_width = *minimal_width;
+}
+
+
+
+static void       
+xfce_panel_image_get_preferred_height (GtkWidget *widget,
+                                       gint      *minimal_height,
+                                       gint      *natural_height)
+{
+  XfcePanelImagePrivate *priv = XFCE_PANEL_IMAGE (widget)->priv;
+  GtkAllocation          alloc;
+
+  if (priv->size > 0)
+    *minimal_height = priv->size;
+  else if (priv->pixbuf != NULL)
+    *minimal_height = gdk_pixbuf_get_height (priv->pixbuf);
+  else
+    {
+      gtk_widget_get_allocation (widget, &alloc);
+      *minimal_height = alloc.height;
+    }
+
+  *natural_height = *minimal_height;
 }
 
 
@@ -311,8 +337,7 @@ xfce_panel_image_size_allocate (GtkWidget     *widget,
 {
   XfcePanelImagePrivate *priv = XFCE_PANEL_IMAGE (widget)->priv;
 
-
-  widget->allocation = *allocation;
+  gtk_widget_set_allocation (widget, allocation);
 
   /* check if the available size changed */
   if ((priv->pixbuf != NULL || priv->source != NULL)
@@ -331,8 +356,8 @@ xfce_panel_image_size_allocate (GtkWidget     *widget,
       if (priv->pixbuf == NULL)
         {
           /* delay icon loading */
-          priv->idle_load_id = g_idle_add_full (G_PRIORITY_DEFAULT_IDLE, xfce_panel_image_load,
-                                                widget, xfce_panel_image_load_destroy);
+          priv->idle_load_id = gdk_threads_add_idle_full (G_PRIORITY_DEFAULT_IDLE, xfce_panel_image_load,
+                                                          widget, xfce_panel_image_load_destroy);
         }
       else
         {
@@ -345,8 +370,8 @@ xfce_panel_image_size_allocate (GtkWidget     *widget,
 
 
 static gboolean
-xfce_panel_image_expose_event (GtkWidget      *widget,
-                               GdkEventExpose *event)
+xfce_panel_image_draw (GtkWidget *widget,
+                       cairo_t   *cr)
 {
   XfcePanelImagePrivate *priv = XFCE_PANEL_IMAGE (widget)->priv;
   gint                   source_width, source_height;
@@ -354,7 +379,8 @@ xfce_panel_image_expose_event (GtkWidget      *widget,
   GtkIconSource         *source;
   GdkPixbuf             *rendered = NULL;
   GdkPixbuf             *pixbuf = priv->cache;
-  cairo_t               *cr;
+  GtkStyleContext       *context;
+  GtkAllocation          alloc;
 
   if (G_LIKELY (pixbuf != NULL))
     {
@@ -363,33 +389,25 @@ xfce_panel_image_expose_event (GtkWidget      *widget,
       source_height = gdk_pixbuf_get_height (pixbuf);
 
       /* position */
-      dest_x = widget->allocation.x + (priv->width - source_width) / 2;
-      dest_y = widget->allocation.y + (priv->height - source_height) / 2;
+      gtk_widget_get_allocation (widget, &alloc);
+      dest_x = alloc.x + (priv->width - source_width) / 2;
+      dest_y = alloc.y + (priv->height - source_height) / 2;
 
-      if (GTK_WIDGET_STATE (widget) == GTK_STATE_INSENSITIVE)
+      context = gtk_widget_get_style_context (widget);
+
+      if (!gtk_widget_is_sensitive (widget))
         {
           source = gtk_icon_source_new ();
           gtk_icon_source_set_pixbuf (source, pixbuf);
-
-          rendered = gtk_style_render_icon (widget->style,
-                                            source,
-                                            gtk_widget_get_direction (widget),
-                                            GTK_WIDGET_STATE (widget),
-                                            -1, widget, "xfce-panel-image");
+          rendered = gtk_render_icon_pixbuf (context, source, -1);
           gtk_icon_source_free (source);
 
           if (G_LIKELY (rendered != NULL))
             pixbuf = rendered;
         }
 
-      /* draw the pixbuf */
-      cr = gdk_cairo_create (gtk_widget_get_window (widget));
-      if (G_LIKELY (cr != NULL))
-        {
-          gdk_cairo_set_source_pixbuf (cr, pixbuf, dest_x, dest_y);
-          cairo_paint (cr);
-          cairo_destroy (cr);
-        }
+      /* draw the icon */
+      gtk_render_icon (context, cr, pixbuf, dest_x, dest_y);
 
       if (rendered != NULL)
         g_object_unref (G_OBJECT (rendered));
@@ -442,8 +460,6 @@ xfce_panel_image_load (gpointer data)
   GtkIconTheme          *icon_theme = NULL;
   gint                   dest_w, dest_h;
 
-  GDK_THREADS_ENTER ();
-
   dest_w = priv->width;
   dest_h = priv->height;
 
@@ -486,8 +502,6 @@ xfce_panel_image_load (gpointer data)
 
   if (G_LIKELY (priv->cache != NULL))
     gtk_widget_queue_draw (GTK_WIDGET (data));
-
-  GDK_THREADS_LEAVE ();
 
   return FALSE;
 }

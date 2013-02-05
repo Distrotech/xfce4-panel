@@ -141,7 +141,7 @@ systray_box_class_init (SystrayBoxClass *klass)
 static void
 systray_box_init (SystrayBox *box)
 {
-  GTK_WIDGET_SET_FLAGS (box, GTK_NO_WINDOW);
+  gtk_widget_set_has_window (GTK_WIDGET (box), FALSE);
 
   box->childeren = NULL;
   box->size_max = SIZE_MAX_DEFAULT;

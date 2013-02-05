@@ -236,7 +236,7 @@ panel_itembar_init (PanelItembar *itembar)
   itembar->highlight_index = -1;
   itembar->highlight_length = -1;
 
-  GTK_WIDGET_SET_FLAGS (GTK_WIDGET (itembar), GTK_NO_WINDOW);
+  gtk_widget_set_has_window (GTK_WIDGET (itembar), FALSE);
 
   gtk_widget_set_redraw_on_allocate (GTK_WIDGET (itembar), FALSE);
 }

@@ -181,8 +181,9 @@ xfce_arrow_button_init (XfceArrowButton *button)
   button->priv->last_relief = GTK_RELIEF_NORMAL;
 
   /* set some widget properties */
-  GTK_WIDGET_SET_FLAGS (GTK_WIDGET (button), GTK_NO_WINDOW);
-  GTK_WIDGET_UNSET_FLAGS (button, GTK_CAN_DEFAULT | GTK_CAN_FOCUS);
+  gtk_widget_set_has_window (GTK_WIDGET (button), FALSE);
+  gtk_widget_set_can_default (GTK_WIDGET (button), FALSE);
+  gtk_widget_set_can_focus (GTK_WIDGET (button), FALSE);
   gtk_button_set_focus_on_click (GTK_BUTTON (button), FALSE);
 }
 
@@ -252,45 +253,56 @@ xfce_arrow_button_draw (GtkWidget *widget,
   XfceArrowButton *button = XFCE_ARROW_BUTTON (widget);
   GtkWidget       *child;
   gint             x, y, width;
+  GtkAllocation    alloc;
+  gdouble          angle;
+  GtkStyleContext *context;
 
   /* draw the button */
   (*GTK_WIDGET_CLASS (xfce_arrow_button_parent_class)->draw) (widget, cr);
 
   if (button->priv->arrow_type != GTK_ARROW_NONE
-      && GTK_WIDGET_DRAWABLE (widget))
+      && gtk_widget_is_drawable (widget))
     {
       child = gtk_bin_get_child (GTK_BIN (widget));
-      if (child != NULL && GTK_WIDGET_VISIBLE (child))
+      if (child != NULL
+          && gtk_widget_get_visible (child))
         {
+          gtk_widget_get_allocation (widget, &alloc);
+          
           if (button->priv->arrow_type == GTK_ARROW_UP
               || button->priv->arrow_type == GTK_ARROW_DOWN)
             {
               width = ARROW_WIDTH;
-              x = widget->allocation.x + widget->style->xthickness;
-              y = widget->allocation.y + (widget->allocation.height - width) / 2;
+              x = alloc.x + 1 /* widget->style->xthickness */;
+              y = alloc.y + (alloc.height - width) / 2;
             }
           else
             {
               width = ARROW_WIDTH;
-              x = widget->allocation.x + (widget->allocation.width - width) / 2;
-              y = widget->allocation.y + widget->style->ythickness;
+              x = alloc.x + (alloc.width - width) / 2;
+              y = alloc.y + 1 /* widget->style->ythickness */;
             }
         }
       else
         {
-          width = MIN (widget->allocation.height - 2 * widget->style->ythickness,
-                       widget->allocation.width  - 2 * widget->style->xthickness);
+          width = MIN (alloc.height - 2 * 1 /* widget->style->ythickness */,
+                       alloc.width  - 2 * 1 /* widget->style->xthickness */);
           width = CLAMP (width, 1, ARROW_WIDTH);
 
-          x = widget->allocation.x + (widget->allocation.width - width) / 2;
-          y = widget->allocation.y + (widget->allocation.height - width) / 2;
+          x = alloc.x + (alloc.width - width) / 2;
+          y = alloc.y + (alloc.height - width) / 2;
         }
 
-      gtk_paint_arrow (widget->style, widget->window,
-                       GTK_WIDGET_STATE (widget), GTK_SHADOW_NONE,
-                       &(event->area), widget, "xfce_arrow_button",
-                       button->priv->arrow_type, FALSE,
-                       x, y, width, width);
+      switch (button->priv->arrow_type)
+        {
+        case GTK_ARROW_DOWN:  angle = G_PI;
+        case GTK_ARROW_LEFT:  angle = G_PI / 2.0 + G_PI;
+        case GTK_ARROW_RIGHT: angle = G_PI / 2.0;
+        default:              angle = 0;
+        }
+
+      context = gtk_widget_get_style_context (widget);
+      gtk_render_arrow (context, cr, angle, x, y, ARROW_WIDTH);
     }
 
   return TRUE;
@@ -386,10 +398,11 @@ xfce_arrow_button_size_allocate (GtkWidget     *widget,
   if (button->priv->arrow_type != GTK_ARROW_NONE)
     {
       child = gtk_bin_get_child (GTK_BIN (widget));
-      if (child != NULL && GTK_WIDGET_VISIBLE (child))
+      if (child != NULL
+          && gtk_widget_get_visible (child))
         {
           /* copy the child allocation */
-          child_allocation = child->allocation;
+          gtk_widget_get_allocation (child, &child_allocation);
 
           /* update the allocation to make space for the arrow */
           switch (button->priv->arrow_type)
@@ -421,8 +434,6 @@ xfce_arrow_button_blinking_timeout (gpointer user_data)
   GtkStyle        *style;
   GtkRcStyle      *rc;
 
-  GDK_THREADS_ENTER ();
-
   rc = gtk_widget_get_modifier_style (GTK_WIDGET (button));
   if(PANEL_HAS_FLAG (rc->color_flags[GTK_STATE_NORMAL], GTK_RC_BG)
      || button->priv->blinking_timeout_id == 0)
@@ -439,8 +450,6 @@ xfce_arrow_button_blinking_timeout (gpointer user_data)
       rc->bg[GTK_STATE_NORMAL] = style->bg[GTK_STATE_SELECTED];
       gtk_widget_modify_style(GTK_WIDGET (button), rc);
     }
-
-  GDK_THREADS_LEAVE ();
 
   return (button->priv->blinking_counter++ < MAX_BLINKING_COUNT);
 }
@@ -571,9 +580,9 @@ xfce_arrow_button_set_blinking (XfceArrowButton *button,
         {
           /* start blinking timeout */
           button->priv->blinking_timeout_id =
-              g_timeout_add_full (G_PRIORITY_DEFAULT_IDLE, 500,
-                                  xfce_arrow_button_blinking_timeout, button,
-                                  xfce_arrow_button_blinking_timeout_destroyed);
+              gdk_threads_add_timeout_full (G_PRIORITY_DEFAULT_IDLE, 500,
+                                            xfce_arrow_button_blinking_timeout, button,
+                                            xfce_arrow_button_blinking_timeout_destroyed);
         }
     }
   else if (button->priv->blinking_timeout_id != 0)

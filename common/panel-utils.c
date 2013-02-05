@@ -121,6 +121,10 @@ panel_utils_show_help (GtkWindow   *parent,
 gboolean
 panel_utils_grab_available (void)
 {
+#if GTK_CHECK_VERSION (3, 0, 0)
+  /* TODO fix for gtk3 */
+  return TRUE;
+#else
   GdkScreen     *screen;
   GdkWindow     *root;
   GdkGrabStatus  grab_pointer = GDK_GRAB_FROZEN;
@@ -165,6 +169,7 @@ panel_utils_grab_available (void)
     }
 
   return grab_succeed;
+#endif
 }
 
 

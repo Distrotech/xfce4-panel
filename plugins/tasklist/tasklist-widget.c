@@ -531,7 +531,7 @@ xfce_tasklist_class_init (XfceTasklistClass *klass)
 static void
 xfce_tasklist_init (XfceTasklist *tasklist)
 {
-  GTK_WIDGET_SET_FLAGS (tasklist, GTK_NO_WINDOW);
+  gtk_widget_set_has_window (GTK_WIDGET (tasklist), FALSE);
 
   tasklist->locked = 0;
   tasklist->screen = NULL;
