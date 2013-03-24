@@ -19,6 +19,8 @@
 #ifndef __LIBXFCE4PANEL__
 #define __LIBXFCE4PANEL__
 
+#include <gtk/gtk.h>
+
 G_BEGIN_DECLS
 
 #define LIBXFCE4PANEL_INSIDE_LIBXFCE4PANEL_H
@@ -29,6 +31,9 @@ G_BEGIN_DECLS
 #include <libxfce4panel/xfce-panel-macros.h>
 #include <libxfce4panel/xfce-panel-macros-46.h>
 #include <libxfce4panel/xfce-arrow-button.h>
+#if !GTK_CHECK_VERSION (3, 0, 0)
+#include <libxfce4panel/xfce-hvbox.h>
+#endif
 #include <libxfce4panel/xfce-panel-convenience.h>
 #include <libxfce4panel/xfce-panel-plugin.h>
 #include <libxfce4panel/xfce-panel-image.h>
