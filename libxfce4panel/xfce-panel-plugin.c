@@ -28,7 +28,9 @@
 #endif
 
 #include <gtk/gtk.h>
+#if GTK_CHECK_VERSION (3, 0, 0)
 #include <gtk/gtkx.h>
+#endif
 #include <glib.h>
 #include <libxfce4util/libxfce4util.h>
 
@@ -2434,7 +2436,11 @@ xfce_panel_plugin_position_widget (XfcePanelPlugin *plugin,
     gtk_widget_realize (attach_widget);
 
   /* get the menu/widget size request */
+#if GTK_CHECK_VERSION (3, 0, 0)
   gtk_widget_get_preferred_size (menu_widget, &requisition, NULL);
+#else
+  gtk_widget_size_request (menu_widget, &requisition);
+#endif
 
   /* get the root position of the attach widget */
   toplevel = gtk_widget_get_toplevel (attach_widget);
@@ -2444,8 +2450,13 @@ xfce_panel_plugin_position_widget (XfcePanelPlugin *plugin,
   plug = gtk_widget_get_ancestor (attach_widget, GTK_TYPE_PLUG);
   if (plug != NULL)
     {
+#if GTK_CHECK_VERSION (3, 0, 0)
        gdk_window_get_geometry (gtk_plug_get_socket_window (GTK_PLUG (plug)),
                                 &px, &py, NULL, NULL);
+#else
+       gdk_window_get_geometry (gtk_plug_get_socket_window (GTK_PLUG (plug)),
+                                &px, &py, NULL, NULL, NULL);
+#endif
 
        *x += px;
        *y += py;
