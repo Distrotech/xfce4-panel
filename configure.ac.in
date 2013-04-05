@@ -144,9 +144,6 @@ dnl ***********************************************************
 XDT_CHECK_OPTIONAL_PACKAGE([GTK2],
                            [gtk+-2.0], [2.20.0], [gtk2],
                            [GTK+ 2 support])
-if "x$GTK2_FOUND" = "xyes" ; then
-    XDT_CHECK_PACKAGE([LIBXFCE4UI2], [libxfce4ui-1], [4.9.0])
-fi
 AM_CONDITIONAL([ENABLE_GTK2_LIBRARY], [test "x$GTK2_FOUND" = "xyes"])
 
 dnl **********************************
