@@ -134,7 +134,8 @@ enum
   PROP_EXPAND,
   PROP_MODE,
   PROP_NROWS,
-  PROP_SHRINK
+  PROP_SHRINK,
+  N_PROPERTIES
 };
 
 enum
@@ -198,9 +199,10 @@ struct _XfcePanelPluginPrivate
 
 
 
-static guint  plugin_signals[LAST_SIGNAL];
-static GQuark item_properties = 0;
-static GQuark item_about = 0;
+static guint       plugin_signals[LAST_SIGNAL];
+static GQuark      item_properties = 0;
+static GQuark      item_about = 0;
+static GParamSpec *plugin_props[N_PROPERTIES] = { NULL, };
 
 
 
@@ -462,15 +464,14 @@ xfce_panel_plugin_class_init (XfcePanelPluginClass *klass)
    * xfce_panel_plugin_get_name() is recommended since that returns
    * a const string.
    **/
-  g_object_class_install_property (gobject_class,
-                                   PROP_NAME,
-                                   g_param_spec_string ("name",
-                                                        "Name",
-                                                        "Plugin internal name",
-                                                        NULL,
-                                                        G_PARAM_READWRITE
-                                                        | G_PARAM_STATIC_STRINGS
-                                                        | G_PARAM_CONSTRUCT_ONLY));
+  plugin_props[PROP_NAME] =
+      g_param_spec_string ("name",
+                           "Name",
+                           "Plugin internal name",
+                           NULL,
+                           G_PARAM_READWRITE
+                           | G_PARAM_STATIC_STRINGS
+                           | G_PARAM_CONSTRUCT_ONLY);
 
   /**
    * XfcePanelPlugin:display-name:
@@ -480,15 +481,14 @@ xfce_panel_plugin_class_init (XfcePanelPluginClass *klass)
    * it to read the plugin display name, but xfce_panel_plugin_get_display_name()
    * is recommended.
    **/
-  g_object_class_install_property (gobject_class,
-                                   PROP_DISPLAY_NAME,
-                                   g_param_spec_string ("display-name",
-                                                        "Display Name",
-                                                        "Plugin display name",
-                                                        NULL,
-                                                        G_PARAM_READWRITE
-                                                        | G_PARAM_STATIC_STRINGS
-                                                        | G_PARAM_CONSTRUCT_ONLY));
+  plugin_props[PROP_DISPLAY_NAME] =
+      g_param_spec_string ("display-name",
+                           "Display Name",
+                           "Plugin display name",
+                           NULL,
+                           G_PARAM_READWRITE
+                           | G_PARAM_STATIC_STRINGS
+                           | G_PARAM_CONSTRUCT_ONLY);
 
   /**
    * XfcePanelPlugin:comment:
@@ -500,15 +500,14 @@ xfce_panel_plugin_class_init (XfcePanelPluginClass *klass)
    *
    * Since: 4.8
    **/
-  g_object_class_install_property (gobject_class,
-                                   PROP_COMMENT,
-                                   g_param_spec_string ("comment",
-                                                        "Comment",
-                                                        "Plugin comment",
-                                                        NULL,
-                                                        G_PARAM_READWRITE
-                                                        | G_PARAM_STATIC_STRINGS
-                                                        | G_PARAM_CONSTRUCT_ONLY));
+  plugin_props[PROP_COMMENT] =
+      g_param_spec_string ("comment",
+                           "Comment",
+                           "Plugin comment",
+                           NULL,
+                           G_PARAM_READWRITE
+                           | G_PARAM_STATIC_STRINGS
+                           | G_PARAM_CONSTRUCT_ONLY);
 
   /**
    * XfcePanelPlugin:id:
@@ -519,15 +518,14 @@ xfce_panel_plugin_class_init (XfcePanelPluginClass *klass)
    *
    * Since: 4.8
    **/
-  g_object_class_install_property (gobject_class,
-                                   PROP_UNIQUE_ID,
-                                   g_param_spec_int ("unique-id",
-                                                     "Unique ID",
-                                                     "Unique plugin ID",
-                                                     -1, G_MAXINT, -1,
-                                                     G_PARAM_READWRITE
-                                                     | G_PARAM_STATIC_STRINGS
-                                                     | G_PARAM_CONSTRUCT_ONLY));
+  plugin_props[PROP_UNIQUE_ID] =
+      g_param_spec_int ("unique-id",
+                        "Unique ID",
+                        "Unique plugin ID",
+                        -1, G_MAXINT, -1,
+                        G_PARAM_READWRITE
+                        | G_PARAM_STATIC_STRINGS
+                        | G_PARAM_CONSTRUCT_ONLY);
 
   /**
    * XfcePanelPlugin:arguments:
@@ -537,15 +535,14 @@ xfce_panel_plugin_class_init (XfcePanelPluginClass *klass)
    * use it to read the arguments array, but
    * xfce_panel_plugin_get_arguments() is recommended.
    **/
-  g_object_class_install_property (gobject_class,
-                                   PROP_ARGUMENTS,
-                                   g_param_spec_boxed ("arguments",
-                                                       "Arguments",
-                                                       "Startup arguments for the plugin",
-                                                       G_TYPE_STRV,
-                                                       G_PARAM_READWRITE
-                                                       | G_PARAM_STATIC_STRINGS
-                                                       | G_PARAM_CONSTRUCT_ONLY));
+  plugin_props[PROP_ARGUMENTS] =
+      g_param_spec_boxed ("arguments",
+                          "Arguments",
+                          "Startup arguments for the plugin",
+                          G_TYPE_STRV,
+                          G_PARAM_READWRITE
+                          | G_PARAM_STATIC_STRINGS
+                          | G_PARAM_CONSTRUCT_ONLY);
 
   /**
    * XfcePanelPlugin:orientation:
@@ -553,15 +550,14 @@ xfce_panel_plugin_class_init (XfcePanelPluginClass *klass)
    * The #GtkOrientation of the #XfcePanelPlugin. Plugin writer can use it to read the
    * plugin orientation, but xfce_panel_plugin_get_orientation() is recommended.
    **/
-  g_object_class_install_property (gobject_class,
-                                   PROP_ORIENTATION,
-                                   g_param_spec_enum ("orientation",
-                                                      "Orientation",
-                                                      "Orientation of the plugin's panel",
-                                                      GTK_TYPE_ORIENTATION,
-                                                      GTK_ORIENTATION_HORIZONTAL,
-                                                      G_PARAM_READABLE
-                                                      | G_PARAM_STATIC_STRINGS));
+  plugin_props[PROP_ORIENTATION] =
+      g_param_spec_enum ("orientation",
+                         "Orientation",
+                         "Orientation of the plugin's panel",
+                         GTK_TYPE_ORIENTATION,
+                         GTK_ORIENTATION_HORIZONTAL,
+                         G_PARAM_READABLE
+                         | G_PARAM_STATIC_STRINGS);
 
   /**
    * XfcePanelPlugin:size:
@@ -569,14 +565,13 @@ xfce_panel_plugin_class_init (XfcePanelPluginClass *klass)
    * The size in pixels of the #XfcePanelPlugin. Plugin writer can use it to read the
    * plugin size, but xfce_panel_plugin_get_size() is recommended.
    **/
-  g_object_class_install_property (gobject_class,
-                                   PROP_SIZE,
-                                   g_param_spec_int ("size",
-                                                     "Size",
-                                                     "Size of the plugin's panel",
-                                                     0, (128 * 6), 0,
-                                                     G_PARAM_READABLE
-                                                     | G_PARAM_STATIC_STRINGS));
+  plugin_props[PROP_SIZE] =
+      g_param_spec_int ("size",
+                        "Size",
+                        "Size of the plugin's panel",
+                        0, (128 * 6), 0,
+                        G_PARAM_READABLE
+                        | G_PARAM_STATIC_STRINGS);
 
   /**
    * XfcePanelPlugin:screen-position:
@@ -585,15 +580,14 @@ xfce_panel_plugin_class_init (XfcePanelPluginClass *klass)
    * to read the plugin's screen position, but xfce_panel_plugin_get_screen_psotion()
    * is recommended.
    **/
-  g_object_class_install_property (gobject_class,
-                                   PROP_SCREEN_POSITION,
-                                   g_param_spec_enum  ("screen-position",
-                                                       "Screen Position",
-                                                       "Screen position of the plugin's panel",
-                                                       XFCE_TYPE_SCREEN_POSITION,
-                                                       XFCE_SCREEN_POSITION_NONE,
-                                                       G_PARAM_READABLE
-                                                       | G_PARAM_STATIC_STRINGS));
+  plugin_props[PROP_SCREEN_POSITION] =
+      g_param_spec_enum  ("screen-position",
+                          "Screen Position",
+                          "Screen position of the plugin's panel",
+                          XFCE_TYPE_SCREEN_POSITION,
+                          XFCE_SCREEN_POSITION_NONE,
+                          G_PARAM_READABLE
+                          | G_PARAM_STATIC_STRINGS);
 
   /**
    * XfcePanelPlugin:small:
@@ -604,14 +598,13 @@ xfce_panel_plugin_class_init (XfcePanelPluginClass *klass)
    *
    * Since: 4.10
    **/
-  g_object_class_install_property (gobject_class,
-                                   PROP_SMALL,
-                                   g_param_spec_boolean ("small",
-                                                         "Small",
-                                                         "Is this plugin small, e.g. a single button?",
-                                                         FALSE,
-                                                         G_PARAM_READWRITE
-                                                         | G_PARAM_STATIC_STRINGS));
+  plugin_props[PROP_SMALL] =
+      g_param_spec_boolean ("small",
+                            "Small",
+                            "Is this plugin small, e.g. a single button?",
+                            FALSE,
+                            G_PARAM_READWRITE
+                            | G_PARAM_STATIC_STRINGS);
 
   /**
    * XfcePanelPlugin:expand:
@@ -620,14 +613,13 @@ xfce_panel_plugin_class_init (XfcePanelPluginClass *klass)
    * to read or set this property, but xfce_panel_plugin_set_expand()
    * is recommended.
    **/
-  g_object_class_install_property (gobject_class,
-                                   PROP_EXPAND,
-                                   g_param_spec_boolean ("expand",
-                                                         "Expand",
-                                                         "Whether this plugin is expanded",
-                                                         FALSE,
-                                                         G_PARAM_READWRITE
-                                                         | G_PARAM_STATIC_STRINGS));
+  plugin_props[PROP_EXPAND] =
+      g_param_spec_boolean ("expand",
+                            "Expand",
+                            "Whether this plugin is expanded",
+                            FALSE,
+                            G_PARAM_READWRITE
+                            | G_PARAM_STATIC_STRINGS);
 
   /**
    * XfcePanelPlugin:shrink:
@@ -638,14 +630,13 @@ xfce_panel_plugin_class_init (XfcePanelPluginClass *klass)
    *
    * Since: 4.10
    **/
-  g_object_class_install_property (gobject_class,
-                                   PROP_SHRINK,
-                                   g_param_spec_boolean ("shrink",
-                                                         "Shrink",
-                                                         "Whether this plugin can shrink",
-                                                         FALSE,
-                                                         G_PARAM_READWRITE
-                                                         | G_PARAM_STATIC_STRINGS));
+  plugin_props[PROP_SHRINK] =
+      g_param_spec_boolean ("shrink",
+                            "Shrink",
+                            "Whether this plugin can shrink",
+                            FALSE,
+                            G_PARAM_READWRITE
+                            | G_PARAM_STATIC_STRINGS);
 
   /**
    * XfcePanelPlugin:mode:
@@ -654,15 +645,14 @@ xfce_panel_plugin_class_init (XfcePanelPluginClass *klass)
    *
    * Since: 4.10
    **/
-  g_object_class_install_property (gobject_class,
-                                   PROP_MODE,
-                                   g_param_spec_enum ("mode",
-                                                      "Mode",
-                                                      "Disply mode of the plugin",
-                                                      XFCE_TYPE_PANEL_PLUGIN_MODE,
-                                                      XFCE_PANEL_PLUGIN_MODE_HORIZONTAL,
-                                                      G_PARAM_READABLE
-                                                      | G_PARAM_STATIC_STRINGS));
+  plugin_props[PROP_MODE] =
+      g_param_spec_enum ("mode",
+                         "Mode",
+                         "Disply mode of the plugin",
+                         XFCE_TYPE_PANEL_PLUGIN_MODE,
+                         XFCE_PANEL_PLUGIN_MODE_HORIZONTAL,
+                         G_PARAM_READABLE
+                         | G_PARAM_STATIC_STRINGS);
 
   /**
    * XfcePanelPlugin:nrows:
@@ -671,14 +661,16 @@ xfce_panel_plugin_class_init (XfcePanelPluginClass *klass)
    *
    * Since: 4.10
    **/
-  g_object_class_install_property (gobject_class,
-                                   PROP_NROWS,
-                                   g_param_spec_uint ("nrows",
-                                                      "Nrows",
-                                                      "Number of rows of the panel",
-                                                      1, 6, 1,
-                                                      G_PARAM_READABLE
-                                                      | G_PARAM_STATIC_STRINGS));
+  plugin_props[PROP_NROWS] =
+      g_param_spec_uint ("nrows",
+                         "Nrows",
+                         "Number of rows of the panel",
+                         1, 6, 1,
+                         G_PARAM_READABLE
+                         | G_PARAM_STATIC_STRINGS);
+
+  /* install all properties */
+  g_object_class_install_properties (gobject_class, N_PROPERTIES, plugin_props);
 
   item_properties = g_quark_from_static_string ("item-properties");
   item_about = g_quark_from_static_string ("item-about");
@@ -1375,7 +1367,7 @@ xfce_panel_plugin_set_size (XfcePanelPluginProvider *provider,
       if (!handled)
         gtk_widget_set_size_request (GTK_WIDGET (plugin), real_size, real_size);
 
-      g_object_notify (G_OBJECT (plugin), "size");
+      g_object_notify_by_pspec (G_OBJECT (plugin), plugin_props[PROP_SIZE]);
     }
 }
 
@@ -1401,7 +1393,7 @@ xfce_panel_plugin_set_mode (XfcePanelPluginProvider *provider,
       g_signal_emit (G_OBJECT (plugin),
                      plugin_signals[MODE_CHANGED], 0, mode);
 
-      g_object_notify (G_OBJECT (plugin), "mode");
+      g_object_notify_by_pspec (G_OBJECT (plugin), plugin_props[PROP_MODE]);
 
       /* emit old orientation property for compatibility */
       new_orientation = xfce_panel_plugin_get_orientation (plugin);
@@ -1410,7 +1402,7 @@ xfce_panel_plugin_set_mode (XfcePanelPluginProvider *provider,
           g_signal_emit (G_OBJECT (plugin),
                          plugin_signals[ORIENTATION_CHANGED], 0, new_orientation);
 
-          g_object_notify (G_OBJECT (plugin), "orientation");
+          g_object_notify_by_pspec (G_OBJECT (plugin), plugin_props[PROP_ORIENTATION]);
         }
     }
 }
@@ -1435,7 +1427,7 @@ xfce_panel_plugin_set_nrows (XfcePanelPluginProvider *provider,
       g_signal_emit (G_OBJECT (plugin),
                      plugin_signals[NROWS_CHANGED], 0, nrows);
 
-      g_object_notify (G_OBJECT (plugin), "nrows");
+      g_object_notify_by_pspec (G_OBJECT (plugin), plugin_props[PROP_NROWS]);
 
       /* also the size changed */
       xfce_panel_plugin_set_size (provider, -1);
@@ -1462,7 +1454,7 @@ xfce_panel_plugin_set_screen_position (XfcePanelPluginProvider *provider,
                      plugin_signals[SCREEN_POSITION_CHANGED], 0,
                      screen_position);
 
-      g_object_notify (G_OBJECT (plugin), "screen-position");
+      g_object_notify_by_pspec (G_OBJECT (plugin), plugin_props[PROP_SCREEN_POSITION]);
     }
 }
 
@@ -1843,7 +1835,7 @@ xfce_panel_plugin_set_expand (XfcePanelPlugin *plugin,
                                               expand ? PROVIDER_SIGNAL_EXPAND_PLUGIN :
                                                   PROVIDER_SIGNAL_COLLAPSE_PLUGIN);
 
-      g_object_notify (G_OBJECT (plugin), "expand");
+      g_object_notify_by_pspec (G_OBJECT (plugin), plugin_props[PROP_EXPAND]);
     }
 }
 
@@ -1901,7 +1893,7 @@ xfce_panel_plugin_set_shrink (XfcePanelPlugin *plugin,
                                               shrink ? PROVIDER_SIGNAL_SHRINK_PLUGIN :
                                                   PROVIDER_SIGNAL_UNSHRINK_PLUGIN);
 
-      g_object_notify (G_OBJECT (plugin), "shrink");
+      g_object_notify_by_pspec (G_OBJECT (plugin), plugin_props[PROP_SHRINK]);
     }
 }
 
@@ -1957,7 +1949,7 @@ xfce_panel_plugin_set_small (XfcePanelPlugin *plugin,
                                               small ? PROVIDER_SIGNAL_SMALL_PLUGIN :
                                               PROVIDER_SIGNAL_UNSMALL_PLUGIN);
 
-      g_object_notify (G_OBJECT (plugin), "small");
+      g_object_notify_by_pspec (G_OBJECT (plugin), plugin_props[PROP_SMALL]);
     }
 }
 

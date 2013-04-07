@@ -12,17 +12,17 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xfce4-panel 4.10.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-03-10 11:09+0000\n"
-"PO-Revision-Date: 2013-03-10 14:15+0100\n"
+"POT-Creation-Date: 2013-04-04 05:00+0000\n"
+"PO-Revision-Date: 2013-04-04 11:27+0200\n"
 "Last-Translator: Piotr Sokół <psokol@jabster.pl>\n"
 "Language-Team: polski <>\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bits\n"
+"X-Generator: Gtranslator 2.91.5\n"
 "Plural-Forms: nplurals=3; plural=((n==1) ? 0 : ((n%10>=2 && n%10<=4 && (n"
 "%100<10 || n%100>=20)) ? 1 : 2));\n"
-"X-Generator: Gtranslator 2.91.5\n"
 
 #: ../panel-desktop-handler.desktop.in.h:1
 msgid ""
@@ -46,38 +46,38 @@ msgid "Panel"
 msgstr "Panel"
 
 #. I18N: %s is the name of the plugin
-#: ../libxfce4panel/xfce-panel-plugin.c:1037
+#: ../libxfce4panel/xfce-panel-plugin.c:1029
 #: ../panel/panel-preferences-dialog.c:1099
 #, c-format
 msgid "Are you sure that you want to remove \"%s\"?"
 msgstr "Usunąć aplet „%s”?"
 
-#: ../libxfce4panel/xfce-panel-plugin.c:1042
+#: ../libxfce4panel/xfce-panel-plugin.c:1034
 #: ../panel/panel-preferences-dialog.c:1102
 msgid "If you remove the item from the panel, it is permanently lost."
 msgstr "Aplet zostanie bezpowrotnie usunięty."
 
 #. move item
-#: ../libxfce4panel/xfce-panel-plugin.c:1202
+#: ../libxfce4panel/xfce-panel-plugin.c:1194
 msgid "_Move"
 msgstr "_Przemieść"
 
-#: ../libxfce4panel/xfce-panel-plugin.c:1236
+#: ../libxfce4panel/xfce-panel-plugin.c:1228
 msgid "Pane_l"
 msgstr "Pane_l"
 
 #. add new items
-#: ../libxfce4panel/xfce-panel-plugin.c:1244 ../panel/panel-window.c:2365
+#: ../libxfce4panel/xfce-panel-plugin.c:1236 ../panel/panel-window.c:2365
 msgid "Add _New Items..."
 msgstr "_Dodaj aplet..."
 
 #. customize panel
-#: ../libxfce4panel/xfce-panel-plugin.c:1255 ../panel/panel-window.c:2376
+#: ../libxfce4panel/xfce-panel-plugin.c:1247 ../panel/panel-window.c:2376
 msgid "Panel Pr_eferences..."
 msgstr "P_referencje..."
 
 #. logout item
-#: ../libxfce4panel/xfce-panel-plugin.c:1272 ../panel/panel-window.c:2404
+#: ../libxfce4panel/xfce-panel-plugin.c:1264 ../panel/panel-window.c:2404
 msgid "Log _Out"
 msgstr "Za_kończ sesję"
 
@@ -941,23 +941,23 @@ msgstr "I_kona:"
 msgid "_Show button title"
 msgstr "_Etykieta przycisku"
 
-#: ../plugins/applicationsmenu/applicationsmenu.c:565
+#: ../plugins/applicationsmenu/applicationsmenu.c:557
 #: ../plugins/directorymenu/directorymenu.c:388
 msgid "Select An Icon"
 msgstr "Wybór ikony"
 
-#: ../plugins/applicationsmenu/applicationsmenu.c:603
-#: ../plugins/applicationsmenu/applicationsmenu.c:844
-#: ../plugins/clock/clock.c:852 ../plugins/launcher/launcher.c:2308
+#: ../plugins/applicationsmenu/applicationsmenu.c:598
+#: ../plugins/applicationsmenu/applicationsmenu.c:839
+#: ../plugins/clock/clock.c:865 ../plugins/launcher/launcher.c:2308
 #, c-format
 msgid "Failed to execute command \"%s\"."
 msgstr "Nie udało się wykonać polecenia „%s”."
 
-#: ../plugins/applicationsmenu/applicationsmenu.c:1113
+#: ../plugins/applicationsmenu/applicationsmenu.c:1108
 msgid "No applications found"
 msgstr "Nie odnaleziono programów"
 
-#: ../plugins/applicationsmenu/applicationsmenu.c:1136
+#: ../plugins/applicationsmenu/applicationsmenu.c:1131
 msgid "Failed to load the applications menu"
 msgstr "Nie udało się wczytać menu programów"
 
@@ -995,15 +995,15 @@ msgstr "Wyświetla menu w bieżącym położeniu kursora myszy"
 msgid "Show help options"
 msgstr "Wypisuje komunikat pomocy"
 
-#: ../plugins/clock/clock.c:167
+#: ../plugins/clock/clock.c:174
 msgid "Week %V"
 msgstr "Tydzień %V"
 
-#: ../plugins/clock/clock.c:450
+#: ../plugins/clock/clock.c:457
 msgid "Failed to execute clock command"
 msgstr "Nie udało się wykonać polecenia zegara"
 
-#: ../plugins/clock/clock.c:797
+#: ../plugins/clock/clock.c:807
 msgid "Custom Format"
 msgstr "Własny"
 
@@ -1059,11 +1059,11 @@ msgstr "LCD"
 
 #: ../plugins/clock/clock-dialog.glade.h:15
 msgid ""
-"Name of the timezone matching the system's timezone database. Leave empty to "
-"revert to the local time."
+"Name of a timezone corresponding a file in the zoneinfo database, for "
+"example \"America/New_York\". Leave empty to use the localtime."
 msgstr ""
-"Określa nazwę strefy czasowej pochodzącej z systemowej bazy danych. Proszę "
-"pozostawić puste pole, aby użyć lokalnej strefy czasowej."
+"Określa nazwę strefy czasowej pochodzącej z systemowej bazy danych, „Europa/"
+"Warszawa”. Proszę pozostawić puste pole, aby użyć lokalnej strefy czasowej."
 
 #: ../plugins/clock/clock-dialog.glade.h:16
 msgid "Sho_w AM/PM"
@@ -1077,16 +1077,7 @@ msgstr "_Nieaktywne punkty"
 msgid "Show gri_d"
 msgstr "_Siatka"
 
-#: ../plugins/clock/clock-dialog.glade.h:19
-msgid ""
-"Start a tool for setting the system time and date. If the button is grayed "
-"out, check the \"Help\" page to see how to configure it correctly."
-msgstr ""
-"Uruchamia narzędzie służące do konfigurowania systemowego czasu i daty. "
-"Jeśli przycisk jest nieaktywny, proszę sprawdzić podręcznik programu, aby "
-"dowiedzieć się jak prawidłowo konfigurować czas i datę."
-
-#: ../plugins/clock/clock-dialog.glade.h:21
+#: ../plugins/clock/clock-dialog.glade.h:20
 #, no-c-format
 msgid ""
 "The format describes the date and time parts to insert into the panel. For "
@@ -1099,31 +1090,27 @@ msgstr ""
 "<b></b> sprawią, że wyświetlany tekst zostanie wytłuszczony. Więcej "
 "informacji można znaleźć w dokumentacji programu."
 
-#: ../plugins/clock/clock-dialog.glade.h:22
+#: ../plugins/clock/clock-dialog.glade.h:21
 msgid "Time Settings"
 msgstr "Ustawienia czasu"
 
-#: ../plugins/clock/clock-dialog.glade.h:23
-msgid "Time:"
-msgstr "Czas:"
+#: ../plugins/clock/clock-dialog.glade.h:22
+msgid "Time and Date _Settings..."
+msgstr "_Ustawienia czasu i daty..."
 
-#: ../plugins/clock/clock-dialog.glade.h:24
+#: ../plugins/clock/clock-dialog.glade.h:23
 msgid "Time_zone:"
 msgstr "_Strefa czasowa:"
 
-#: ../plugins/clock/clock-dialog.glade.h:25
+#: ../plugins/clock/clock-dialog.glade.h:24
 msgid "True _binary clock"
 msgstr "Rzeczywiste wskazania _binarne"
 
-#: ../plugins/clock/clock-dialog.glade.h:26
+#: ../plugins/clock/clock-dialog.glade.h:25
 msgid "_Layout:"
 msgstr "_Układ:"
 
-#: ../plugins/clock/clock-dialog.glade.h:27
-msgid "_Set"
-msgstr "_Ustal"
-
-#: ../plugins/clock/clock-dialog.glade.h:28
+#: ../plugins/clock/clock-dialog.glade.h:26
 msgid "_Tooltip format:"
 msgstr "Format p_odpowiedzi:"
 
@@ -1224,7 +1211,7 @@ msgstr "za pięć %1"
 #: ../plugins/clock/clock-fuzzy.c:114
 #, no-c-format
 msgid "%1 o'clock"
-msgstr "%1 "
+msgstr "%1"
 
 #. I18N: some languages have a singular form for the first hour,
 #. * other languages should just use the same strings as above
@@ -1856,6 +1843,20 @@ msgstr "Menu okien"
 #: ../plugins/windowmenu/windowmenu.desktop.in.h:1
 msgid "Switch between open windows using a menu"
 msgstr "Przełącza pomiędzy oknami przy użyciu menu"
+
+#~ msgid ""
+#~ "Start a tool for setting the system time and date. If the button is "
+#~ "grayed out, check the \"Help\" page to see how to configure it correctly."
+#~ msgstr ""
+#~ "Uruchamia narzędzie służące do konfigurowania systemowego czasu i daty. "
+#~ "Jeśli przycisk jest nieaktywny, proszę sprawdzić podręcznik programu, aby "
+#~ "dowiedzieć się jak prawidłowo konfigurować czas i datę."
+
+#~ msgid "Time:"
+#~ msgstr "Czas:"
+
+#~ msgid "_Set"
+#~ msgstr "_Ustal"
 
 #~ msgid "L_ock Screen"
 #~ msgstr "_Zablokuj ekran"
