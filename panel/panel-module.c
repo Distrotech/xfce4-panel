@@ -100,6 +100,9 @@ struct _PanelModule
 
   /* for gobject plugins */
   GType                plugin_type;
+
+  /* for wrapper plugins */
+  gchar               *api;
 };
 
 
@@ -144,6 +147,7 @@ panel_module_init (PanelModule *module)
   module->library = NULL;
   module->construct_func = NULL;
   module->plugin_type = G_TYPE_NONE;
+  module->api = NULL;
 }
 
 
@@ -170,6 +174,7 @@ panel_module_finalize (GObject *object)
   g_free (module->display_name);
   g_free (module->comment);
   g_free (module->icon_name);
+  g_free (module->api);
 
   (*G_OBJECT_CLASS (panel_module_parent_class)->finalize) (object);
 }
@@ -214,6 +219,7 @@ panel_module_load (GTypeModule *type_module)
 
       /* from now on, run this plugin in a wrapper */
       module->mode = WRAPPER;
+      module->api = g_strdup (LIBXFCE4PANEL_VERSION_API);
 
       return FALSE;
     }
@@ -359,7 +365,10 @@ panel_module_new_from_desktop_file (const gchar *filename,
           /* run mode of the module, by default everything runs in
            * the wrapper, unless defined otherwise */
           if (force_external || !xfce_rc_read_bool_entry (rc, "X-XFCE-Internal", FALSE))
-            module->mode = WRAPPER;
+            {
+              module->mode = WRAPPER;
+              module->api = g_strdup (xfce_rc_read_entry (rc, "X-XFCE-API", "1.0"));
+            }
           else
             module->mode = INTERNAL;
         }
@@ -571,6 +580,17 @@ panel_module_get_icon_name (PanelModule *module)
                             || g_utf8_validate (module->icon_name, -1, NULL), NULL);
 
   return module->icon_name;
+}
+
+
+
+const gchar *
+panel_module_get_api (PanelModule *module)
+{
+  panel_return_val_if_fail (PANEL_IS_MODULE (module), NULL);
+  panel_return_val_if_fail (G_IS_TYPE_MODULE (module), NULL);
+
+  return module->api;
 }
 
 
