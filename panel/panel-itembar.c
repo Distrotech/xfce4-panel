@@ -38,42 +38,48 @@ typedef struct _PanelItembarChild PanelItembarChild;
 
 
 
-static void               panel_itembar_set_property       (GObject         *object,
-                                                            guint            prop_id,
-                                                            const GValue    *value,
-                                                            GParamSpec      *pspec);
-static void               panel_itembar_get_property       (GObject         *object,
-                                                            guint            prop_id,
-                                                            GValue          *value,
-                                                            GParamSpec      *pspec);
-static void               panel_itembar_finalize           (GObject         *object);
-static void               panel_itembar_size_request       (GtkWidget       *widget,
-                                                            GtkRequisition  *requisition);
-static void               panel_itembar_size_allocate      (GtkWidget       *widget,
-                                                            GtkAllocation   *allocation);
-static gboolean           panel_itembar_expose_event       (GtkWidget       *widget,
-                                                            GdkEventExpose  *event);
-static void               panel_itembar_add                (GtkContainer    *container,
-                                                            GtkWidget       *child);
-static void               panel_itembar_remove             (GtkContainer    *container,
-                                                            GtkWidget       *child);
-static void               panel_itembar_forall             (GtkContainer    *container,
-                                                            gboolean         include_internals,
-                                                            GtkCallback      callback,
-                                                            gpointer         callback_data);
-static GType              panel_itembar_child_type         (GtkContainer    *container);
-static void               panel_itembar_set_child_property (GtkContainer    *container,
-                                                            GtkWidget       *widget,
-                                                            guint            prop_id,
-                                                            const GValue    *value,
-                                                            GParamSpec      *pspec);
-static void               panel_itembar_get_child_property (GtkContainer    *container,
-                                                            GtkWidget       *widget,
-                                                            guint            prop_id,
-                                                            GValue          *value,
-                                                            GParamSpec      *pspec);
-static PanelItembarChild *panel_itembar_get_child          (PanelItembar    *itembar,
-                                                            GtkWidget       *widget);
+static void               panel_itembar_set_property         (GObject         *object,
+                                                              guint            prop_id,
+                                                              const GValue    *value,
+                                                              GParamSpec      *pspec);
+static void               panel_itembar_get_property         (GObject         *object,
+                                                              guint            prop_id,
+                                                              GValue          *value,
+                                                              GParamSpec      *pspec);
+static void               panel_itembar_finalize             (GObject         *object);
+static void               panel_itembar_size_request         (GtkWidget       *widget,
+                                                              GtkRequisition  *requisition);
+static void               panel_itembar_get_preferred_width  (GtkWidget       *widget,
+                                                              gint            *minimum_width,
+                                                              gint            *natural_width);
+static void               panel_itembar_get_preferred_height (GtkWidget       *widget,
+                                                              gint            *minimum_height,
+                                                              gint            *natural_height);
+static void               panel_itembar_size_allocate        (GtkWidget       *widget,
+                                                              GtkAllocation   *allocation);
+static gboolean           panel_itembar_draw                 (GtkWidget *widget,
+                                                              cairo_t   *cr);
+static void               panel_itembar_add                  (GtkContainer    *container,
+                                                              GtkWidget       *child);
+static void               panel_itembar_remove               (GtkContainer    *container,
+                                                              GtkWidget       *child);
+static void               panel_itembar_forall               (GtkContainer    *container,
+                                                              gboolean         include_internals,
+                                                              GtkCallback      callback,
+                                                              gpointer         callback_data);
+static GType              panel_itembar_child_type           (GtkContainer    *container);
+static void               panel_itembar_set_child_property   (GtkContainer    *container,
+                                                              GtkWidget       *widget,
+                                                              guint            prop_id,
+                                                              const GValue    *value,
+                                                              GParamSpec      *pspec);
+static void               panel_itembar_get_child_property   (GtkContainer    *container,
+                                                              GtkWidget       *widget,
+                                                              guint            prop_id,
+                                                              GValue          *value,
+                                                              GParamSpec      *pspec);
+static PanelItembarChild *panel_itembar_get_child            (PanelItembar    *itembar,
+                                                              GtkWidget       *widget);
 
 
 
@@ -160,9 +166,10 @@ panel_itembar_class_init (PanelItembarClass *klass)
   gobject_class->finalize = panel_itembar_finalize;
 
   gtkwidget_class = GTK_WIDGET_CLASS (klass);
-  gtkwidget_class->size_request = panel_itembar_size_request;
+  gtkwidget_class->get_preferred_width = panel_itembar_get_preferred_width;
+  gtkwidget_class->get_preferred_height = panel_itembar_get_preferred_height;
   gtkwidget_class->size_allocate = panel_itembar_size_allocate;
-  gtkwidget_class->expose_event = panel_itembar_expose_event;
+  gtkwidget_class->draw = panel_itembar_draw;
 
   gtkcontainer_class = GTK_CONTAINER_CLASS (klass);
   gtkcontainer_class->add = panel_itembar_add;
@@ -330,11 +337,11 @@ panel_itembar_size_request (GtkWidget      *widget,
 
       if (G_LIKELY (child != NULL))
         {
-          if (!GTK_WIDGET_VISIBLE (child->widget))
+          if (!gtk_widget_get_visible (child->widget))
             continue;
 
           /* get the child's size request */
-          gtk_widget_size_request (child->widget, &child_req);
+          gtk_widget_get_preferred_size (child->widget, &child_req, NULL);
 
           /* check if the small child fits in a row */
           if (child->option == CHILD_OPTION_SMALL
@@ -377,7 +384,7 @@ panel_itembar_size_request (GtkWidget      *widget,
   rows_size = itembar->size * itembar->nrows;
 
   /* return the total size */
-  border_width = GTK_CONTAINER (widget)->border_width * 2;
+  border_width = gtk_container_get_border_width (GTK_CONTAINER (widget)) * 2;
   if (IS_HORIZONTAL (itembar))
     {
       requisition->width = total_len + border_width;
@@ -388,6 +395,36 @@ panel_itembar_size_request (GtkWidget      *widget,
       requisition->height = total_len + border_width;
       requisition->width = rows_size + border_width;
     }
+}
+
+
+
+static void
+panel_itembar_get_preferred_width (GtkWidget *widget,
+                                   gint      *minimum_width,
+                                   gint      *natural_width)
+{
+  GtkRequisition request;
+
+  panel_itembar_size_request (widget, &request);
+
+  *minimum_width = request.width;
+  *natural_width = request.width;
+}
+
+
+
+static void
+panel_itembar_get_preferred_height (GtkWidget *widget,
+                                    gint      *minimum_height,
+                                    gint      *natural_height)
+{
+  GtkRequisition request;
+
+  panel_itembar_size_request (widget, &request);
+
+  *minimum_height = request.height;
+  *natural_height = request.height;
 }
 
 
@@ -416,9 +453,9 @@ panel_itembar_size_allocate (GtkWidget     *widget,
 
   /* the maximum allocation is limited by that of the
    * panel window, so take over the assigned allocation */
-  widget->allocation = *allocation;
+  gtk_widget_set_allocation (widget, allocation);
 
-  border_width = GTK_CONTAINER (widget)->border_width;
+  border_width = gtk_container_get_border_width (GTK_CONTAINER (widget));
 
   if (IS_HORIZONTAL (itembar))
     itembar_len = allocation->width - 2 * border_width;
@@ -443,10 +480,10 @@ panel_itembar_size_allocate (GtkWidget     *widget,
       child = lp->data;
       if (G_LIKELY (child != NULL))
         {
-          if (!GTK_WIDGET_VISIBLE (child->widget))
+          if (!gtk_widget_get_visible (child->widget))
             continue;
 
-          gtk_widget_get_child_requisition (child->widget, &child_req);
+          gtk_widget_get_preferred_size (child->widget, &child_req, NULL);
 
           child_len = CHILD_LENGTH (child_req, itembar);
 
@@ -560,10 +597,10 @@ panel_itembar_size_allocate (GtkWidget     *widget,
           continue;
         }
 
-      if (!GTK_WIDGET_VISIBLE (child->widget))
+      if (!gtk_widget_get_visible (child->widget))
         continue;
 
-      gtk_widget_get_child_requisition (child->widget, &child_req);
+      gtk_widget_get_preferred_size (child->widget, &child_req, NULL);
 
       child_len = CHILD_LENGTH (child_req, itembar);
 
@@ -680,17 +717,15 @@ panel_itembar_size_allocate (GtkWidget     *widget,
 
 
 static gboolean
-panel_itembar_expose_event (GtkWidget      *widget,
-                            GdkEventExpose *event)
+panel_itembar_draw (GtkWidget *widget,
+                    cairo_t   *cr)
 {
   PanelItembar *itembar = PANEL_ITEMBAR (widget);
   gboolean      result;
-  cairo_t      *cr;
-  GdkWindow    *window;
   GdkRectangle  rect;
   gint          row_size;
 
-  result = (*GTK_WIDGET_CLASS (panel_itembar_parent_class)->expose_event) (widget, event);
+  result = (*GTK_WIDGET_CLASS (panel_itembar_parent_class)->draw) (widget, cr);
 
   if (itembar->highlight_index != -1)
     {
@@ -714,17 +749,10 @@ panel_itembar_expose_event (GtkWidget      *widget,
         }
 
       /* draw highlight box */
-      window = gtk_widget_get_window (widget);
-      cr = gdk_cairo_create (window);
       cairo_set_source_rgb (cr, 1.00, 0.00, 0.00);
-
-      gdk_cairo_rectangle (cr, &event->area);
-      cairo_clip (cr);
 
       gdk_cairo_rectangle (cr, &rect);
       cairo_fill (cr);
-
-      cairo_destroy (cr);
     }
 
   return result;
@@ -750,7 +778,7 @@ panel_itembar_remove (GtkContainer *container,
 
   panel_return_if_fail (PANEL_IS_ITEMBAR (itembar));
   panel_return_if_fail (GTK_IS_WIDGET (widget));
-  panel_return_if_fail (widget->parent == GTK_WIDGET (container));
+  panel_return_if_fail (gtk_widget_get_parent (widget) == GTK_WIDGET (container));
   panel_return_if_fail (itembar->children != NULL);
 
   child = panel_itembar_get_child (itembar, widget);
@@ -898,7 +926,7 @@ panel_itembar_get_child (PanelItembar *itembar,
 
   panel_return_val_if_fail (PANEL_IS_ITEMBAR (itembar), NULL);
   panel_return_val_if_fail (GTK_IS_WIDGET (widget), NULL);
-  panel_return_val_if_fail (widget->parent == GTK_WIDGET (itembar), NULL);
+  panel_return_val_if_fail (gtk_widget_get_parent (widget) == GTK_WIDGET (itembar), NULL);
 
   for (li = itembar->children; li != NULL; li = g_slist_next (li))
     {
@@ -930,7 +958,7 @@ panel_itembar_insert (PanelItembar *itembar,
 
   panel_return_if_fail (PANEL_IS_ITEMBAR (itembar));
   panel_return_if_fail (GTK_IS_WIDGET (widget));
-  panel_return_if_fail (widget->parent == NULL);
+  panel_return_if_fail (gtk_widget_get_parent (widget) == NULL);
 
   child = g_slice_new0 (PanelItembarChild);
   child->widget = widget;
@@ -954,7 +982,7 @@ panel_itembar_reorder_child (PanelItembar *itembar,
 
   panel_return_if_fail (PANEL_IS_ITEMBAR (itembar));
   panel_return_if_fail (GTK_IS_WIDGET (widget));
-  panel_return_if_fail (widget->parent == GTK_WIDGET (itembar));
+  panel_return_if_fail (gtk_widget_get_parent (widget) == GTK_WIDGET (itembar));
 
   child = panel_itembar_get_child (itembar, widget);
   if (G_LIKELY (child != NULL))
@@ -980,7 +1008,7 @@ panel_itembar_get_child_index (PanelItembar *itembar,
 
   panel_return_val_if_fail (PANEL_IS_ITEMBAR (itembar), -1);
   panel_return_val_if_fail (GTK_IS_WIDGET (widget), -1);
-  panel_return_val_if_fail (widget->parent == GTK_WIDGET (itembar), -1);
+  panel_return_val_if_fail (gtk_widget_get_parent (widget) == GTK_WIDGET (itembar), -1);
 
   for (idx = 0, li = itembar->children; li != NULL; li = g_slist_next (li), idx++)
     {
@@ -1028,7 +1056,7 @@ panel_itembar_get_drop_index (PanelItembar *itembar,
   panel_return_val_if_fail (PANEL_IS_ITEMBAR (itembar), 0);
 
   /* add the itembar position */
-  alloc = GTK_WIDGET (itembar)->allocation;
+  gtk_widget_get_allocation (GTK_WIDGET (itembar), &alloc);
 
   if (!IS_HORIZONTAL (itembar))
     {
@@ -1054,7 +1082,7 @@ panel_itembar_get_drop_index (PanelItembar *itembar,
         continue;
 
       panel_assert (child->widget != NULL);
-      alloc = child->widget->allocation;
+      gtk_widget_get_allocation (child->widget, &alloc);
 
       if (!IS_HORIZONTAL (itembar))
         TRANSPOSE_AREA (alloc);
@@ -1081,9 +1109,9 @@ panel_itembar_get_drop_index (PanelItembar *itembar,
                   panel_assert (child2->widget != NULL);
                   col_end_idx++;
                   if (IS_HORIZONTAL (itembar))
-                    col_width = MAX (col_width, child2->widget->allocation.width);
+                    col_width = MAX (col_width, gtk_widget_get_allocated_width (child2->widget));
                   else
-                    col_width = MAX (col_width, child2->widget->allocation.height);
+                    col_width = MAX (col_width, gtk_widget_get_allocated_height (child2->widget));
                 }
             }
 

@@ -85,8 +85,8 @@ static void         panel_window_set_property               (GObject          *o
                                                              const GValue     *value,
                                                              GParamSpec       *pspec);
 static void         panel_window_finalize                   (GObject          *object);
-static gboolean     panel_window_expose_event               (GtkWidget        *widget,
-                                                             GdkEventExpose   *event);
+static gboolean     panel_window_draw                       (GtkWidget        *widget,
+                                                             cairo_t          *cr);
 static gboolean     panel_window_delete_event               (GtkWidget        *widget,
                                                              GdkEventAny      *event);
 static gboolean     panel_window_enter_notify_event         (GtkWidget        *widget,
@@ -109,8 +109,12 @@ static gboolean     panel_window_button_release_event       (GtkWidget        *w
                                                              GdkEventButton   *event);
 static void         panel_window_grab_notify                (GtkWidget        *widget,
                                                              gboolean          was_grabbed);
-static void         panel_window_size_request               (GtkWidget        *widget,
-                                                             GtkRequisition   *requisition);
+static void         panel_window_get_preferred_width        (GtkWidget        *widget,
+                                                             gint             *minimum_width,
+                                                             gint             *natural_width);
+static void         panel_window_get_preferred_height       (GtkWidget        *widget,
+                                                             gint             *minimum_height,
+                                                             gint             *natural_height);
 static void         panel_window_size_allocate              (GtkWidget        *widget,
                                                              GtkAllocation    *alloc);
 static void         panel_window_size_allocate_set_xy       (PanelWindow      *window,
@@ -336,7 +340,7 @@ panel_window_class_init (PanelWindowClass *klass)
   gobject_class->finalize = panel_window_finalize;
 
   gtkwidget_class = GTK_WIDGET_CLASS (klass);
-  gtkwidget_class->expose_event = panel_window_expose_event;
+  gtkwidget_class->draw = panel_window_draw;
   gtkwidget_class->delete_event = panel_window_delete_event;
   gtkwidget_class->enter_notify_event = panel_window_enter_notify_event;
   gtkwidget_class->leave_notify_event = panel_window_leave_notify_event;
@@ -346,7 +350,8 @@ panel_window_class_init (PanelWindowClass *klass)
   gtkwidget_class->button_press_event = panel_window_button_press_event;
   gtkwidget_class->button_release_event = panel_window_button_release_event;
   gtkwidget_class->grab_notify = panel_window_grab_notify;
-  gtkwidget_class->size_request = panel_window_size_request;
+  gtkwidget_class->get_preferred_width = panel_window_get_preferred_width;
+  gtkwidget_class->get_preferred_height = panel_window_get_preferred_height;
   gtkwidget_class->size_allocate = panel_window_size_allocate;
   gtkwidget_class->screen_changed = panel_window_screen_changed;
   gtkwidget_class->style_set = panel_window_style_set;
@@ -750,22 +755,24 @@ panel_window_finalize (GObject *object)
 
 
 static gboolean
-panel_window_expose_event (GtkWidget      *widget,
-                           GdkEventExpose *event)
+panel_window_draw (GtkWidget *widget,
+                   cairo_t   *cr)
 {
-  PanelWindow  *window = PANEL_WINDOW (widget);
-  cairo_t      *cr;
-  GdkColor     *color;
-  guint         xx, yy, i;
-  gint          xs, xe, ys, ye;
-  gint          handle_w, handle_h;
-  gdouble       alpha = 1.00;
-  GtkWidget    *child;
+  PanelWindow      *window = PANEL_WINDOW (widget);
+  GdkRGBA           bg_rgba, light_rgba, dark_rgba;
+  GtkSymbolicColor *literal;
+  GtkSymbolicColor *shade;
+  guint             xx, yy, i;
+  gint              xs, xe, ys, ye;
+  gint              handle_w, handle_h;
+  gdouble           alpha = 1.00;
+  GtkWidget        *child;
+  GtkStyleContext  *ctx;
 
   /* expose the background and borders handled in PanelBaseWindow */
-  (*GTK_WIDGET_CLASS (panel_window_parent_class)->expose_event) (widget, event);
+  (*GTK_WIDGET_CLASS (panel_window_parent_class)->draw) (widget, cr);
 
-  if (window->position_locked || !GTK_WIDGET_DRAWABLE (widget))
+  if (window->position_locked || !gtk_widget_is_drawable (widget))
     goto end;
 
   if (IS_HORIZONTAL (window))
@@ -776,11 +783,6 @@ panel_window_expose_event (GtkWidget      *widget,
       xs = HANDLE_SPACING + 1;
       xe = window->alloc.width - HANDLE_SIZE - HANDLE_SIZE;
       ys = ye = (window->alloc.height - handle_h) / 2;
-
-      /* dirty check if we have to redraw the handles */
-      if (event->area.x > xs + HANDLE_SIZE
-          && event->area.x + event->area.width < xe)
-        goto end;
     }
   else
     {
@@ -790,35 +792,36 @@ panel_window_expose_event (GtkWidget      *widget,
       xs = xe = (window->alloc.width - handle_w) / 2;
       ys = HANDLE_SPACING + 1;
       ye = window->alloc.height - HANDLE_SIZE - HANDLE_SIZE;
-
-      /* dirty check if we have to redraw the handles */
-      if (event->area.y > ys + HANDLE_SIZE
-          && event->area.y + event->area.height < ye)
-        goto end;
     }
 
   /* create cairo context and set some default properties */
-  cr = gdk_cairo_create (widget->window);
-  panel_return_val_if_fail (cr != NULL, FALSE);
   cairo_set_antialias (cr, CAIRO_ANTIALIAS_NONE);
   cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
-
-  /* clip the drawing area */
-  gdk_cairo_rectangle (cr, &event->area);
-  cairo_clip (cr);
 
   /* alpha color */
   if (PANEL_BASE_WINDOW (window)->is_composited)
     alpha = MAX (0.50, PANEL_BASE_WINDOW (window)->background_alpha);
 
+  ctx = gtk_widget_get_style_context (widget);
+  gtk_style_context_get_background_color (ctx, GTK_STATE_NORMAL, &bg_rgba);
+  literal = gtk_symbolic_color_new_literal (&bg_rgba);
+  shade = gtk_symbolic_color_new_shade (literal, 1.3);
+  gtk_symbolic_color_resolve (shade, NULL, &light_rgba);
+  gtk_symbolic_color_unref (shade);
+  shade = gtk_symbolic_color_new_shade (literal, 0.7);
+  gtk_symbolic_color_resolve (shade, NULL, &dark_rgba);
+  gtk_symbolic_color_unref (shade);
+  gtk_symbolic_color_unref (literal);
+  light_rgba.alpha = alpha;
+  dark_rgba.alpha = alpha;
+
   for (i = HANDLE_PIXELS; i >= HANDLE_PIXELS - 1; i--)
     {
       /* set the source color */
       if (i == HANDLE_PIXELS)
-        color = &(widget->style->light[GTK_STATE_NORMAL]);
+        gdk_cairo_set_source_rgba (cr, &light_rgba);
       else
-        color = &(widget->style->dark[GTK_STATE_NORMAL]);
-      panel_util_set_source_rgba (cr, color, alpha);
+        gdk_cairo_set_source_rgba (cr, &dark_rgba);
 
       /* draw the dots */
       for (xx = 0; xx < (guint) handle_w; xx += HANDLE_PIXELS + HANDLE_PIXEL_SPACE)
@@ -832,13 +835,11 @@ panel_window_expose_event (GtkWidget      *widget,
       cairo_fill (cr);
     }
 
-  cairo_destroy (cr);
-
 end:
   /* send the expose event to the child */
   child = gtk_bin_get_child (GTK_BIN (widget));
   if (G_LIKELY (child != NULL))
-    gtk_container_propagate_expose (GTK_CONTAINER (widget), child, event);
+    gtk_container_propagate_draw (GTK_CONTAINER (widget), child, cr);
 
   return FALSE;
 }
@@ -1015,7 +1016,7 @@ panel_window_button_press_event (GtkWidget      *widget,
   guint          modifiers;
 
   /* leave if the event is not for this window */
-  if (event->window != widget->window)
+  if (event->window != gtk_widget_get_window (widget))
     goto end;
 
   modifiers = event->state & gtk_accelerator_get_default_mod_mask ();
@@ -1155,26 +1156,26 @@ panel_window_grab_notify (GtkWidget *widget,
 
 
 static void
-panel_window_size_request (GtkWidget      *widget,
-                           GtkRequisition *requisition)
+panel_window_get_preferred_width (GtkWidget *widget,
+                                  gint      *minimum_width,
+                                  gint      *natural_width)
 {
   PanelWindow    *window = PANEL_WINDOW (widget);
-  GtkRequisition  child_requisition = { 0, 0 };
+  gint            m_width = 0;
+  gint            n_width = 0;
   gint            length;
-  gint            extra_width = 0, extra_height = 0;
+  gint            extra_width = 0;
   PanelBorders    borders;
 
   /* get the child requisition */
-  if (GTK_BIN (widget)->child != NULL)
-    gtk_widget_size_request (GTK_BIN (widget)->child, &child_requisition);
+  if (gtk_bin_get_child (GTK_BIN (widget)) != NULL)
+    gtk_widget_get_preferred_width (gtk_bin_get_child (GTK_BIN (widget)), &m_width, &n_width);
 
   /* handle size */
   if (!window->position_locked)
     {
       if (IS_HORIZONTAL (window))
         extra_width += 2 * HANDLE_SIZE_TOTAL;
-      else
-        extra_height += 2 * HANDLE_SIZE_TOTAL;
     }
 
   /* get the active borders */
@@ -1183,31 +1184,77 @@ panel_window_size_request (GtkWidget      *widget,
     extra_width++;
   if (PANEL_HAS_FLAG (borders, PANEL_BORDER_RIGHT))
     extra_width++;
-  if (PANEL_HAS_FLAG (borders, PANEL_BORDER_TOP))
-    extra_height++;
-  if (PANEL_HAS_FLAG (borders, PANEL_BORDER_BOTTOM))
-    extra_height++;
 
-  requisition->height = child_requisition.height + extra_height;
-  requisition->width = child_requisition.width + extra_width;
+  m_width += extra_width;
+  n_width += extra_width;
 
   /* respect the length and monitor/screen size */
   if (IS_HORIZONTAL (window))
     {
       if (!window->length_adjust)
-        requisition->width = extra_width;
+        {
+          m_width = n_width = extra_width;
+        }
 
       length = window->area.width * window->length;
-      requisition->width = CLAMP (requisition->width, length, window->area.width);
+      m_width = CLAMP (m_width, length, window->area.width);
+      n_width = CLAMP (n_width, length, window->area.width);
     }
-  else
+
+  *minimum_width = m_width;
+  *natural_width = n_width;
+}
+
+
+
+static void
+panel_window_get_preferred_height (GtkWidget *widget,
+                                   gint      *minimum_height,
+                                   gint      *natural_height)
+{
+  PanelWindow    *window = PANEL_WINDOW (widget);
+  gint            m_height = 0;
+  gint            n_height = 0;
+  gint            length;
+  gint            extra_height = 0;
+  PanelBorders    borders;
+
+  /* get the child requisition */
+  if (gtk_bin_get_child (GTK_BIN (widget)) != NULL)
+    gtk_widget_get_preferred_height (gtk_bin_get_child (GTK_BIN (widget)), &m_height, &n_height);
+
+  /* handle size */
+  if (!window->position_locked)
+    {
+      if (!IS_HORIZONTAL (window))
+        extra_height += 2 * HANDLE_SIZE_TOTAL;
+    }
+
+  /* get the active borders */
+  borders = panel_base_window_get_borders (PANEL_BASE_WINDOW (window));
+  if (PANEL_HAS_FLAG (borders, PANEL_BORDER_TOP))
+    extra_height++;
+  if (PANEL_HAS_FLAG (borders, PANEL_BORDER_BOTTOM))
+    extra_height++;
+
+  m_height += extra_height;
+  n_height += extra_height;
+
+  /* respect the length and monitor/screen size */
+  if (!IS_HORIZONTAL (window))
     {
       if (!window->length_adjust)
-        requisition->height = extra_height;
+        {
+          m_height = n_height = extra_height;
+        }
 
       length = window->area.height * window->length;
-      requisition->height = CLAMP (requisition->height, length, window->area.height);
+      m_height = CLAMP (m_height, length, window->area.height);
+      n_height = CLAMP (n_height, length, window->area.height);
     }
+
+  *minimum_height = m_height;
+  *natural_height = n_height;
 }
 
 
@@ -1222,7 +1269,7 @@ panel_window_size_allocate (GtkWidget     *widget,
   PanelBorders   borders;
   GtkWidget     *child;
 
-  widget->allocation = *alloc;
+  gtk_widget_set_allocation (widget, alloc);
   window->alloc = *alloc;
 
   if (G_UNLIKELY (window->autohide_state == AUTOHIDE_HIDDEN
@@ -1554,7 +1601,7 @@ panel_window_screen_struts_set (PanelWindow *window)
   panel_return_if_fail (cardinal_atom != 0 && net_wm_strut_partial_atom != 0);
   panel_return_if_fail (GDK_IS_SCREEN (window->screen));
 
-  if (!GTK_WIDGET_REALIZED (window))
+  if (!gtk_widget_get_realized (GTK_WIDGET (window)))
     return;
 
   /* set the struts */
@@ -1608,15 +1655,15 @@ panel_window_screen_struts_set (PanelWindow *window)
   gdk_error_trap_push ();
 
   /* set the wm strut partial */
-  panel_return_if_fail (GDK_IS_WINDOW (GTK_WIDGET (window)->window));
-  gdk_property_change (GTK_WIDGET (window)->window,
+  panel_return_if_fail (GDK_IS_WINDOW (gtk_widget_get_window (GTK_WIDGET (window))));
+  gdk_property_change (gtk_widget_get_window (GTK_WIDGET (window)),
                        net_wm_strut_partial_atom,
                        cardinal_atom, 32, GDK_PROP_MODE_REPLACE,
                        (guchar *) &struts, N_STRUTS);
 
 #if SET_OLD_WM_STRUTS
   /* set the wm strut (old window managers) */
-  gdk_property_change (GTK_WIDGET (window)->window,
+  gdk_property_change (gtk_widget_get_window (GTK_WIDGET (window)),
                        net_wm_strut_atom,
                        cardinal_atom, 32, GDK_PROP_MODE_REPLACE,
                        (guchar *) &struts, 4);
@@ -1808,11 +1855,9 @@ panel_window_display_layout_debug (GtkWidget *widget)
 
       if (panel_debug_has_domain (PANEL_DEBUG_DISPLAY_LAYOUT))
         {
-          g_string_append_printf (str, "{comp=%s, sys=%p:%p, rgba=%p:%p}",
+          g_string_append_printf (str, "{comp=%s, sys=%p, rgba=%p}",
               PANEL_DEBUG_BOOL (gdk_screen_is_composited (screen)),
-              gdk_screen_get_system_colormap (screen),
               gdk_screen_get_system_visual (screen),
-              gdk_screen_get_rgba_colormap (screen),
               gdk_screen_get_rgba_visual (screen));
         }
 
@@ -1923,7 +1968,7 @@ panel_window_screen_layout_changed (GdkScreen   *screen,
                            window, screen_num);
 
               /* out of range, hide the window */
-              if (GTK_WIDGET_VISIBLE (window))
+              if (gtk_widget_get_visible (GTK_WIDGET (window)))
                 gtk_widget_hide (GTK_WIDGET (window));
               return;
             }
@@ -2011,7 +2056,7 @@ panel_window_screen_layout_changed (GdkScreen   *screen,
                            window, window->output_name);
 
               /* hide the panel if the monitor was not found */
-              if (GTK_WIDGET_VISIBLE (window))
+              if (gtk_widget_get_visible (GTK_WIDGET (window)))
                 gtk_widget_hide (GTK_WIDGET (window));
               return;
             }
@@ -2080,7 +2125,7 @@ panel_window_screen_layout_changed (GdkScreen   *screen,
   if (force_struts_update)
     panel_window_screen_struts_set (window);
 
-  if (!GTK_WIDGET_VISIBLE (window))
+  if (!gtk_widget_get_visible (GTK_WIDGET (window)))
     gtk_widget_show (GTK_WIDGET (window));
 }
 
@@ -2742,20 +2787,20 @@ panel_window_focus (PanelWindow *window)
   XClientMessageEvent event;
 
   panel_return_if_fail (PANEL_IS_WINDOW (window));
-  panel_return_if_fail (GTK_WIDGET_REALIZED (window));
+  panel_return_if_fail (gtk_widget_get_realized (GTK_WIDGET (window)));
 
   /* we need a slightly custom version of the call through Gtk+ to
    * properly focus the panel when a plugin calls
    * xfce_panel_plugin_focus_widget() */
   event.type = ClientMessage;
-  event.window = GDK_WINDOW_XID (GTK_WIDGET (window)->window);
+  event.window = GDK_WINDOW_XID (gtk_widget_get_window (GTK_WIDGET (window)));
   event.message_type = gdk_x11_get_xatom_by_name ("_NET_ACTIVE_WINDOW");
   event.format = 32;
   event.data.l[0] = 0;
 
   gdk_error_trap_push ();
 
-  XSendEvent (GDK_DISPLAY (), GDK_ROOT_WINDOW (), False,
+  XSendEvent (gdk_x11_get_default_xdisplay (), GDK_ROOT_WINDOW (), False,
               StructureNotifyMask, (XEvent *) &event);
 
   gdk_flush ();

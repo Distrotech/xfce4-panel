@@ -184,7 +184,7 @@ panel_plugin_external_46_get_argv (PanelPluginExternal  *external,
   argv[PLUGIN_ARGV_0] = g_strdup (panel_module_get_filename (external->module));
   argv[PLUGIN_ARGV_FILENAME] = g_strdup (""); /* unused, for wrapper only */
   argv[PLUGIN_ARGV_UNIQUE_ID] = g_strdup_printf ("%d", external->unique_id);;
-  argv[PLUGIN_ARGV_SOCKET_ID] = g_strdup_printf ("%u", gtk_socket_get_id (GTK_SOCKET (external)));;
+  argv[PLUGIN_ARGV_SOCKET_ID] = g_strdup_printf ("%lu", gtk_socket_get_id (GTK_SOCKET (external)));;
   argv[PLUGIN_ARGV_NAME] = g_strdup (panel_module_get_name (external->module));
   argv[PLUGIN_ARGV_DISPLAY_NAME] = g_strdup (panel_module_get_display_name (external->module));
   argv[PLUGIN_ARGV_COMMENT] = g_strdup (panel_module_get_comment (external->module));
@@ -221,12 +221,12 @@ panel_plugin_external_46_set_properties (PanelPluginExternal *external,
   panel_return_if_fail (panel_atom != GDK_NONE);
   panel_return_if_fail (PANEL_IS_MODULE (external->module));
 
-  if (!GTK_WIDGET_REALIZED (external))
+  if (!gtk_widget_get_realized (GTK_WIDGET (external)))
     return;
 
   event.type = GDK_CLIENT_EVENT;
-  panel_return_if_fail (GDK_IS_WINDOW (GTK_WIDGET (external)->window));
-  event.window = GTK_WIDGET (external)->window;
+  panel_return_if_fail (GDK_IS_WINDOW (gtk_widget_get_window (GTK_WIDGET (external))));
+  event.window = gtk_widget_get_window (GTK_WIDGET (external));
   event.send_event = TRUE;
   event.message_type = panel_atom;
   event.data_format = 16;

@@ -190,7 +190,6 @@ panel_item_dialog_init (PanelItemDialog *dialog)
   xfce_titled_dialog_set_subtitle (XFCE_TITLED_DIALOG (dialog),
       _("Add new plugins to the panel"));
   gtk_window_set_icon_name (GTK_WINDOW (dialog), GTK_STOCK_ADD);
-  gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
   gtk_window_set_default_size (GTK_WINDOW (dialog), 350, 450);
   gtk_window_set_type_hint (GTK_WINDOW (dialog), GDK_WINDOW_TYPE_HINT_NORMAL);
 
@@ -202,13 +201,13 @@ panel_item_dialog_init (PanelItemDialog *dialog)
   gtk_dialog_add_button (GTK_DIALOG (dialog), GTK_STOCK_CLOSE, GTK_RESPONSE_CLOSE);
   gtk_dialog_set_default_response (GTK_DIALOG (dialog), GTK_RESPONSE_CLOSE);
 
-  main_vbox = gtk_vbox_new (FALSE, BORDER * 2);
-  gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox), main_vbox);
+  main_vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, BORDER * 2);
+  gtk_container_add (GTK_CONTAINER (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), main_vbox);
   gtk_container_set_border_width (GTK_CONTAINER (main_vbox), BORDER);
   gtk_widget_show (main_vbox);
 
   /* search widget */
-  hbox = gtk_hbox_new (FALSE, BORDER);
+  hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, BORDER);
   gtk_box_pack_start (GTK_BOX (main_vbox), hbox, FALSE, FALSE, 0);
   gtk_widget_show (hbox);
 

@@ -1309,8 +1309,8 @@ panel_preferences_dialog_plug_deleted (GtkWidget *plug)
 
 
 static void
-panel_preferences_dialog_show_internal (PanelWindow     *active,
-                                        GdkNativeWindow  socket_window)
+panel_preferences_dialog_show_internal (PanelWindow *active,
+                                        Window       socket_window)
 {
   gint         panel_id = 0;
   GObject     *window, *combo;
@@ -1419,12 +1419,12 @@ panel_preferences_dialog_show_from_id (gint         panel_id,
 {
   PanelApplication *application;
   PanelWindow      *window;
-  GdkNativeWindow   socket_window = 0;
+  Window            socket_window = 0;
 
   /* x11 windows are ulong on 64 bit platforms
    * or uint32 on other platforms */
   if (socket_id != NULL)
-    socket_window = (GdkNativeWindow) strtoul (socket_id, NULL, 0);
+    socket_window = (Window) strtoul (socket_id, NULL, 0);
 
   application = panel_application_get ();
   window = panel_application_get_window (application, panel_id);
