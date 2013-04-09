@@ -505,9 +505,7 @@ panel_application_wait_for_window_manager_destroyed (gpointer data)
 
   /* start loading the panels, hopefully a window manager is found, but it
    * probably also works fine without... */
-  GDK_THREADS_ENTER ();
   panel_application_load_real (application);
-  GDK_THREADS_LEAVE ();
 }
 #endif
 
@@ -1216,8 +1214,8 @@ panel_application_load (PanelApplication  *application,
 
       /* setup timeout to check for a window manager */
       application->wait_for_wm_timeout_id =
-          g_timeout_add_full (G_PRIORITY_DEFAULT_IDLE, 50, panel_application_wait_for_window_manager,
-                              wfwm, panel_application_wait_for_window_manager_destroyed);
+          gdk_threads_add_timeout_full (G_PRIORITY_DEFAULT_IDLE, 50, panel_application_wait_for_window_manager,
+                                        wfwm, panel_application_wait_for_window_manager_destroyed);
     }
   else
     {

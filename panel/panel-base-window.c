@@ -403,7 +403,7 @@ panel_base_window_set_property (GObject      *object,
           if (priv->active_timeout_id == 0)
             {
               /* start timeout for the marching ants selection */
-              priv->active_timeout_id = g_timeout_add_seconds_full (
+              priv->active_timeout_id = gdk_threads_add_timeout_seconds_full (
                   G_PRIORITY_DEFAULT_IDLE, 1,
                   panel_base_window_active_timeout, object,
                   panel_base_window_active_timeout_destroyed);
@@ -731,9 +731,7 @@ static gboolean
 panel_base_window_active_timeout (gpointer user_data)
 {
   /* redraw to update marching ants */
-  GDK_THREADS_ENTER ();
   gtk_widget_queue_draw (GTK_WIDGET (user_data));
-  GDK_THREADS_LEAVE ();
 
   return TRUE;
 }
