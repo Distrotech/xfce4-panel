@@ -480,7 +480,7 @@ applications_menu_plugin_size_changed (XfcePanelPlugin *panel_plugin,
   if (G_LIKELY (screen != NULL))
     icon_theme = gtk_icon_theme_get_for_screen (screen);
 
-  icon_name = exo_str_is_empty (plugin->button_icon) ?
+  icon_name = panel_str_is_empty (plugin->button_icon) ?
     DEFAULT_ICON_NAME : plugin->button_icon;
 
   icon = xfce_panel_pixbuf_from_source_at_size (icon_name,
@@ -498,8 +498,8 @@ applications_menu_plugin_size_changed (XfcePanelPlugin *panel_plugin,
   if (plugin->show_button_title &&
       mode == XFCE_PANEL_PLUGIN_MODE_DESKBAR)
     {
-      /* check if the label fits next to the icon */
-      gtk_widget_size_request (GTK_WIDGET (plugin->label), &label_size);
+      /* check if the label (minimum size) fits next to the icon */
+      gtk_widget_get_preferred_size (GTK_WIDGET (plugin->label), &label_size, NULL);
       if (label_size.width <= size - border_thickness - icon_width)
         orientation = GTK_ORIENTATION_HORIZONTAL;
     }
@@ -703,7 +703,7 @@ applications_menu_plugin_remote_event (XfcePanelPlugin *panel_plugin,
   panel_return_val_if_fail (value == NULL || G_IS_VALUE (value), FALSE);
 
   if (strcmp (name, "popup") == 0
-      && GTK_WIDGET_VISIBLE (panel_plugin)
+      && gtk_widget_get_visible (GTK_WIDGET (panel_plugin))
       && !gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (plugin->button))
       && panel_utils_grab_available ())
     {
@@ -915,7 +915,7 @@ applications_menu_plugin_menu_reload (ApplicationsMenuPlugin *plugin)
       /* if the menu is opened, do not destroy it under the users'
        * cursor, else destroy the menu in an idle, to give garcon
        * time to finalize the events that triggered the reload */
-      if (GTK_WIDGET_VISIBLE (plugin->menu))
+      if (gtk_widget_get_visible (plugin->menu))
         g_signal_connect (G_OBJECT (plugin->menu), "selection-done",
             G_CALLBACK (panel_utils_destroy_later), NULL);
       else
