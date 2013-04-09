@@ -522,7 +522,7 @@ panel_application_plugin_move_drag_data_get (GtkWidget        *item,
   /* set some data, we never use this, but GTK_DEST_DEFAULT_ALL
    * used in the item dialog requires this */
   gtk_selection_data_set (selection_data,
-                          selection_data->target, 8,
+                          gtk_selection_data_get_target (selection_data), 8,
                           (const guchar *) "0", 1);
 }
 
@@ -902,10 +902,10 @@ panel_application_drag_data_received (PanelWindow      *window,
       switch (info)
         {
         case TARGET_PLUGIN_NAME:
-          if (G_LIKELY (selection_data->length > 0))
+          if (G_LIKELY (gtk_selection_data_get_length (selection_data) > 0))
             {
               /* create a new item with a unique id */
-              name = (const gchar *) selection_data->data;
+              name = (const gchar *) gtk_selection_data_get_data (selection_data);
               succeed = panel_application_plugin_insert (application, window, name,
                                                          -1, NULL, application->drop_index);
             }

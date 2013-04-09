@@ -542,7 +542,7 @@ panel_item_dialog_drag_data_get (GtkWidget        *treeview,
     {
       /* set the internal module name as selection data */
       internal_name = panel_module_get_name (module);
-      gtk_selection_data_set (selection_data, selection_data->target, 8,
+      gtk_selection_data_set (selection_data, gtk_selection_data_get_target (selection_data), 8,
           (guchar *) internal_name, strlen (internal_name));
       g_object_unref (G_OBJECT (module));
     }
