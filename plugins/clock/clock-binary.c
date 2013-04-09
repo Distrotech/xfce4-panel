@@ -42,8 +42,8 @@ static void      xfce_clock_binary_get_property  (GObject              *object,
                                                   GValue               *value,
                                                   GParamSpec           *pspec);
 static void      xfce_clock_binary_finalize      (GObject              *object);
-static gboolean  xfce_clock_binary_expose_event  (GtkWidget            *widget,
-                                                  GdkEventExpose       *event);
+static gboolean  xfce_clock_binary_draw          (GtkWidget            *widget,
+                                                  cairo_t              *cr);
 static gboolean  xfce_clock_binary_update        (XfceClockBinary      *binary,
                                                   ClockTime            *time);
 
@@ -98,7 +98,7 @@ xfce_clock_binary_class_init (XfceClockBinaryClass *klass)
   gobject_class->finalize = xfce_clock_binary_finalize;
 
   gtkwidget_class = GTK_WIDGET_CLASS (klass);
-  gtkwidget_class->expose_event = xfce_clock_binary_expose_event;
+  gtkwidget_class->draw = xfce_clock_binary_draw;
 
   g_object_class_install_property (gobject_class,
                                    PROP_SIZE_RATIO,
@@ -257,29 +257,51 @@ xfce_clock_binary_finalize (GObject *object)
 
 
 static void
-xfce_clock_binary_expose_event_true_binary (XfceClockBinary *binary,
-                                            cairo_t         *cr,
-                                            GtkAllocation   *alloc)
+xfce_clock_binary_draw_true_binary (XfceClockBinary *binary,
+                                    cairo_t         *cr,
+                                    GtkAllocation   *alloc)
 {
-  GdkColor    *active, *inactive;
-  GDateTime   *time;
-  gint         row, rows;
-  static gint  binary_table[] = { 32, 16, 8, 4, 2, 1 };
-  gint         col, cols = G_N_ELEMENTS (binary_table);
-  gint         remain_h, remain_w;
-  gint         offset_x, offset_y;
-  gint         w, h, x;
-  gint         ticks;
+  GDateTime        *time;
+  gint              row, rows;
+  static gint       binary_table[] = { 32, 16, 8, 4, 2, 1 };
+  gint              col, cols = G_N_ELEMENTS (binary_table);
+  gint              remain_h, remain_w;
+  gint              offset_x, offset_y;
+  gint              w, h, x;
+  gint              ticks;
+  GtkStyleContext  *ctx;
+  GdkRGBA           active_rgba, inactive_rgba;
+  GtkSymbolicColor *literal;
+  GtkSymbolicColor *shade;
 
-  if (G_UNLIKELY (GTK_WIDGET_STATE (binary) == GTK_STATE_INSENSITIVE))
+  ctx = gtk_widget_get_style_context (GTK_WIDGET (binary));
+
+  if (G_UNLIKELY (gtk_widget_get_state_flags (GTK_WIDGET (binary)) & GTK_STATE_INSENSITIVE))
     {
-      inactive = &(GTK_WIDGET (binary)->style->mid[GTK_STATE_INSENSITIVE]);
-      active = &(GTK_WIDGET (binary)->style->dark[GTK_STATE_INSENSITIVE]);
+      gtk_style_context_get_background_color (ctx, GTK_STATE_INSENSITIVE, &inactive_rgba);
+      literal = gtk_symbolic_color_new_literal (&inactive_rgba);
+      shade = gtk_symbolic_color_new_shade (literal, 0.7);
+      gtk_symbolic_color_resolve (shade, NULL, &active_rgba);
+      gtk_symbolic_color_unref (shade);
+      gtk_symbolic_color_unref (literal);
     }
   else
     {
-      inactive = &(GTK_WIDGET (binary)->style->dark[GTK_STATE_NORMAL]);
-      active = &(GTK_WIDGET (binary)->style->dark[GTK_STATE_SELECTED]);
+      gtk_style_context_get_background_color (ctx, GTK_STATE_NORMAL, &inactive_rgba);
+      literal = gtk_symbolic_color_new_literal (&inactive_rgba);
+      shade = gtk_symbolic_color_new_shade (literal, 0.7);
+      gtk_symbolic_color_resolve (shade, NULL, &inactive_rgba);
+      gtk_symbolic_color_unref (shade);
+      gtk_symbolic_color_unref (literal);
+
+      gtk_style_context_get_background_color (ctx, GTK_STATE_SELECTED, &active_rgba);
+      literal = gtk_symbolic_color_new_literal (&active_rgba);
+      shade = gtk_symbolic_color_new_shade (literal, 0.7);
+      gtk_symbolic_color_resolve (shade, NULL, &active_rgba);
+      gtk_symbolic_color_unref (shade);
+      gtk_symbolic_color_unref (literal);
+      gtk_style_context_get_color (ctx, GTK_STATE_NORMAL, &inactive_rgba);
+      gtk_style_context_get_color (ctx, GTK_STATE_SELECTED, &active_rgba);
     }
 
   time = clock_time_get_time (binary->time);
@@ -315,12 +337,12 @@ xfce_clock_binary_expose_event_true_binary (XfceClockBinary *binary,
 
           if (ticks >= binary_table[col])
             {
-              gdk_cairo_set_source_color (cr, active);
+              gdk_cairo_set_source_rgba (cr, &active_rgba);
               ticks -= binary_table[col];
             }
           else if (binary->show_inactive)
             {
-              gdk_cairo_set_source_color (cr, inactive);
+              gdk_cairo_set_source_rgba (cr, &inactive_rgba);
             }
           else
             {
@@ -342,30 +364,52 @@ xfce_clock_binary_expose_event_true_binary (XfceClockBinary *binary,
 
 
 static void
-xfce_clock_binary_expose_event_binary (XfceClockBinary *binary,
-                                       cairo_t         *cr,
-                                       GtkAllocation   *alloc)
+xfce_clock_binary_draw_binary (XfceClockBinary *binary,
+                                     cairo_t         *cr,
+                                     GtkAllocation   *alloc)
 {
-  GdkColor    *active, *inactive;
-  static gint  binary_table[] = { 80, 40, 20, 10, 8, 4, 2, 1 };
-  GDateTime   *time;
-  gint         row, rows = G_N_ELEMENTS (binary_table) / 2;
-  gint         col, cols;
-  gint         digit;
-  gint         remain_h, remain_w;
-  gint         offset_x, offset_y;
-  gint         w, h, y;
-  gint         ticks = 0;
+  static gint       binary_table[] = { 80, 40, 20, 10, 8, 4, 2, 1 };
+  GDateTime        *time;
+  gint              row, rows = G_N_ELEMENTS (binary_table) / 2;
+  gint              col, cols;
+  gint              digit;
+  gint              remain_h, remain_w;
+  gint              offset_x, offset_y;
+  gint              w, h, y;
+  gint              ticks = 0;
+  GtkStyleContext  *ctx;
+  GdkRGBA           active_rgba, inactive_rgba;
+  GtkSymbolicColor *literal;
+  GtkSymbolicColor *shade;
 
-  if (G_UNLIKELY (GTK_WIDGET_STATE (binary) == GTK_STATE_INSENSITIVE))
+  ctx = gtk_widget_get_style_context (GTK_WIDGET (binary));
+
+  if (G_UNLIKELY (gtk_widget_get_state_flags (GTK_WIDGET (binary)) & GTK_STATE_INSENSITIVE))
     {
-      inactive = &(GTK_WIDGET (binary)->style->mid[GTK_STATE_INSENSITIVE]);
-      active = &(GTK_WIDGET (binary)->style->dark[GTK_STATE_INSENSITIVE]);
+      gtk_style_context_get_background_color (ctx, GTK_STATE_INSENSITIVE, &inactive_rgba);
+      literal = gtk_symbolic_color_new_literal (&inactive_rgba);
+      shade = gtk_symbolic_color_new_shade (literal, 0.7);
+      gtk_symbolic_color_resolve (shade, NULL, &active_rgba);
+      gtk_symbolic_color_unref (shade);
+      gtk_symbolic_color_unref (literal);
     }
   else
     {
-      inactive = &(GTK_WIDGET (binary)->style->dark[GTK_STATE_NORMAL]);
-      active = &(GTK_WIDGET (binary)->style->dark[GTK_STATE_SELECTED]);
+      gtk_style_context_get_background_color (ctx, GTK_STATE_NORMAL, &inactive_rgba);
+      literal = gtk_symbolic_color_new_literal (&inactive_rgba);
+      shade = gtk_symbolic_color_new_shade (literal, 0.7);
+      gtk_symbolic_color_resolve (shade, NULL, &inactive_rgba);
+      gtk_symbolic_color_unref (shade);
+      gtk_symbolic_color_unref (literal);
+
+      gtk_style_context_get_background_color (ctx, GTK_STATE_SELECTED, &active_rgba);
+      literal = gtk_symbolic_color_new_literal (&active_rgba);
+      shade = gtk_symbolic_color_new_shade (literal, 0.7);
+      gtk_symbolic_color_resolve (shade, NULL, &active_rgba);
+      gtk_symbolic_color_unref (shade);
+      gtk_symbolic_color_unref (literal);
+      gtk_style_context_get_color (ctx, GTK_STATE_NORMAL, &inactive_rgba);
+      gtk_style_context_get_color (ctx, GTK_STATE_SELECTED, &active_rgba);
     }
 
   time = clock_time_get_time (binary->time);
@@ -402,12 +446,12 @@ xfce_clock_binary_expose_event_binary (XfceClockBinary *binary,
           digit = row + (4 * (col % 2));
           if (ticks >= binary_table[digit])
             {
-              gdk_cairo_set_source_color (cr, active);
+              gdk_cairo_set_source_rgba (cr, &active_rgba);
               ticks -= binary_table[digit];
             }
           else if (binary->show_inactive)
             {
-              gdk_cairo_set_source_color (cr, inactive);
+              gdk_cairo_set_source_rgba (cr, &inactive_rgba);
             }
           else
             {
@@ -427,91 +471,92 @@ xfce_clock_binary_expose_event_binary (XfceClockBinary *binary,
 
 
 static gboolean
-xfce_clock_binary_expose_event (GtkWidget      *widget,
-                                GdkEventExpose *event)
+xfce_clock_binary_draw (GtkWidget *widget,
+                        cairo_t   *cr)
 {
-  XfceClockBinary *binary = XFCE_CLOCK_BINARY (widget);
-  cairo_t         *cr;
-  GdkColor        *color;
-  gint             col, cols;
-  gint             row, rows;
-  GtkAllocation    alloc;
-  gdouble          remain_w, x;
-  gdouble          remain_h, y;
-  gint             w, h;
-  gint             pad_x, pad_y;
-  gint             diff;
+  XfceClockBinary  *binary = XFCE_CLOCK_BINARY (widget);
+  gint              col, cols;
+  gint              row, rows;
+  GtkAllocation     alloc;
+  gdouble           remain_w, x;
+  gdouble           remain_h, y;
+  gint              w, h;
+  gint              pad_x, pad_y;
+  gint              diff;
+  GtkStyleContext  *ctx;
+  GdkRGBA           bg_rgba, light_rgba;
+  GtkSymbolicColor *literal;
+  GtkSymbolicColor *shade;
 
   panel_return_val_if_fail (XFCE_CLOCK_IS_BINARY (binary), FALSE);
-  panel_return_val_if_fail (GDK_IS_WINDOW (widget->window), FALSE);
+  panel_return_val_if_fail (gtk_widget_get_has_window (widget), FALSE);
+  panel_return_val_if_fail (cr != NULL, FALSE);
 
-  cr = gdk_cairo_create (widget->window);
-  if (G_LIKELY (cr != NULL))
+  gtk_misc_get_padding (GTK_MISC (widget), &pad_x, &pad_y);
+
+  gtk_widget_get_allocation (widget, &alloc);
+  alloc.width -= 1 + 2 * pad_x;
+  alloc.height -= 1 + 2 * pad_y;
+  alloc.x += pad_x + 1;
+  alloc.y += pad_y + 1;
+
+  /* align columns and fix rounding */
+  cols = binary->true_binary ? 6 : (binary->show_seconds ? 6 : 4);
+  diff = alloc.width - (floor ((gdouble) alloc.width / cols) * cols);
+  alloc.width -= diff;
+  alloc.x += diff / 2;
+
+  /* align rows and fix rounding */
+  rows = binary->true_binary ? (binary->show_seconds ? 3 : 2) : 4;
+  diff = alloc.height - (floor ((gdouble) alloc.height / rows) * rows);
+  alloc.height -= diff;
+  alloc.y += diff / 2;
+
+  if (binary->show_grid)
     {
-      /* clip the drawing region */
-      gdk_cairo_rectangle (cr, &event->area);
-      cairo_clip (cr);
+      ctx = gtk_widget_get_style_context (widget);
+      gtk_style_context_get_background_color (ctx, GTK_STATE_SELECTED, &bg_rgba);
+      /* make the bg color lighter */
+      literal = gtk_symbolic_color_new_literal (&bg_rgba);
+      shade = gtk_symbolic_color_new_shade (literal, 1.3);
+      gtk_symbolic_color_resolve (shade, NULL, &light_rgba);
+      gtk_symbolic_color_unref (shade);
+      gtk_symbolic_color_unref (literal);
 
-      gtk_misc_get_padding (GTK_MISC (widget), &pad_x, &pad_y);
+      gdk_cairo_set_source_rgba (cr, &light_rgba);
+      cairo_set_line_width (cr, 1);
 
-      alloc = widget->allocation;
-      alloc.width -= 1 + 2 * pad_x;
-      alloc.height -= 1 + 2 * pad_y;
-      alloc.x += pad_x + 1;
-      alloc.y += pad_y + 1;
+      remain_w = alloc.width;
+      remain_h = alloc.height;
+      x = alloc.x - 0.5;
+      y = alloc.y - 0.5;
 
-      /* align columns and fix rounding */
-      cols = binary->true_binary ? 6 : (binary->show_seconds ? 6 : 4);
-      diff = alloc.width - (floor ((gdouble) alloc.width / cols) * cols);
-      alloc.width -= diff;
-      alloc.x += diff / 2;
+      cairo_rectangle (cr, x, y, alloc.width, alloc.height);
+      cairo_stroke (cr);
 
-      /* align rows and fix rounding */
-      rows = binary->true_binary ? (binary->show_seconds ? 3 : 2) : 4;
-      diff = alloc.height - (floor ((gdouble) alloc.height / rows) * rows);
-      alloc.height -= diff;
-      alloc.y += diff / 2;
-
-      if (binary->show_grid)
+      for (col = 0; col < cols - 1; col++)
         {
-          color = &(GTK_WIDGET (binary)->style->light[GTK_STATE_SELECTED]);
-          gdk_cairo_set_source_color (cr, color);
-          cairo_set_line_width (cr, 1);
-
-          remain_w = alloc.width;
-          remain_h = alloc.height;
-          x = alloc.x - 0.5;
-          y = alloc.y - 0.5;
-
-          cairo_rectangle (cr, x, y, alloc.width, alloc.height);
+          w = remain_w / (cols - col);
+          x += w; remain_w -= w;
+          cairo_move_to (cr, x, alloc.y);
+          cairo_rel_line_to (cr, 0, alloc.height);
           cairo_stroke (cr);
-
-          for (col = 0; col < cols - 1; col++)
-            {
-              w = remain_w / (cols - col);
-              x += w; remain_w -= w;
-              cairo_move_to (cr, x, alloc.y);
-              cairo_rel_line_to (cr, 0, alloc.height);
-              cairo_stroke (cr);
-            }
-
-          for (row = 0; row < rows - 1; row++)
-            {
-              h = remain_h / (rows - row);
-              y += h; remain_h -= h;
-              cairo_move_to (cr, alloc.x, y);
-              cairo_rel_line_to (cr, alloc.width, 0);
-              cairo_stroke (cr);
-            }
         }
 
-      if (binary->true_binary)
-        xfce_clock_binary_expose_event_true_binary (binary, cr, &alloc);
-      else
-        xfce_clock_binary_expose_event_binary (binary, cr, &alloc);
-
-      cairo_destroy (cr);
+      for (row = 0; row < rows - 1; row++)
+        {
+          h = remain_h / (rows - row);
+          y += h; remain_h -= h;
+          cairo_move_to (cr, alloc.x, y);
+          cairo_rel_line_to (cr, alloc.width, 0);
+          cairo_stroke (cr);
+        }
     }
+
+  if (binary->true_binary)
+    xfce_clock_binary_draw_true_binary (binary, cr, &alloc);
+  else
+    xfce_clock_binary_draw_binary (binary, cr, &alloc);
 
   return FALSE;
 }
@@ -527,7 +572,7 @@ xfce_clock_binary_update (XfceClockBinary     *binary,
   panel_return_val_if_fail (XFCE_CLOCK_IS_BINARY (binary), FALSE);
 
   /* update if the widget if visible */
-  if (G_LIKELY (GTK_WIDGET_VISIBLE (widget)))
+  if (G_LIKELY (gtk_widget_get_visible (widget)))
     gtk_widget_queue_draw (widget);
 
   return TRUE;

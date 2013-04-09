@@ -18,7 +18,6 @@
 
 
 #include <glib.h>
-#include <exo/exo.h>
 
 #include "clock-time.h"
 #include "clock.h"
@@ -93,7 +92,7 @@ clock_time_class_init (ClockTimeClass *klass)
                                    g_param_spec_string ("timezone",
                                                         NULL, NULL,
                                                         DEFAULT_TIMEZONE,
-                                                        EXO_PARAM_READWRITE));
+                                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   clock_time_signals[TIME_CHANGED] =
     g_signal_new (g_intern_static_string ("time-changed"),
@@ -232,7 +231,7 @@ clock_time_interval_from_format (const gchar *format)
 {
   const gchar *p;
 
-  if (G_UNLIKELY (exo_str_is_empty (format)))
+  if (G_UNLIKELY (panel_str_is_empty (format)))
       return CLOCK_INTERVAL_MINUTE;
 
   for (p = format; *p != '\0'; ++p)

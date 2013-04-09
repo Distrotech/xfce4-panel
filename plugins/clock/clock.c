@@ -152,7 +152,6 @@ struct _ClockPlugin
   ClockTimeTimeout   *tooltip_timeout;
 
   GdkGrabStatus       grab_pointer;
-  GdkGrabStatus       grab_keyboard;
 
   gchar              *time_config_tool;
   ClockTime          *time;
@@ -919,8 +918,6 @@ clock_plugin_configure_zoneinfo_model (gpointer data)
   GtkListStore       *store;
   GObject            *object;
 
-  GDK_THREADS_ENTER ();
-
   dialog->zonecompletion_idle = 0;
 
   object = gtk_builder_get_object (dialog->builder, "timezone-name");
@@ -940,8 +937,6 @@ clock_plugin_configure_zoneinfo_model (gpointer data)
   gtk_entry_completion_set_text_column (completion, 0);
 
   g_object_unref (G_OBJECT (completion));
-
-  GDK_THREADS_LEAVE ();
 
   return FALSE;
 }
@@ -987,7 +982,7 @@ clock_plugin_configure_plugin (XfcePanelPlugin *panel_plugin)
                           G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
 
   /* idle add the zone completion */
-  dialog->zonecompletion_idle = g_idle_add (clock_plugin_configure_zoneinfo_model, dialog);
+  dialog->zonecompletion_idle = gdk_threads_add_idle (clock_plugin_configure_zoneinfo_model, dialog);
 
   object = gtk_builder_get_object (builder, "mode");
   g_signal_connect_data (G_OBJECT (object), "changed",
@@ -1134,10 +1129,18 @@ static void
 clock_plugin_pointer_ungrab (ClockPlugin *plugin,
                              GtkWidget   *widget)
 {
+  GdkDisplay       *display;
+  GdkDevice        *pointer;
+  GdkDeviceManager *device_manager;
+
+  panel_return_if_fail (GTK_IS_WIDGET (widget));
+
+  display = gtk_widget_get_display (widget);
+  device_manager = gdk_display_get_device_manager (display);
+  pointer = gdk_device_manager_get_client_pointer (device_manager);
+
   if (plugin->grab_pointer == GDK_GRAB_SUCCESS)
-    gdk_pointer_ungrab (GDK_CURRENT_TIME);
-  if (plugin->grab_keyboard == GDK_GRAB_SUCCESS)
-    gdk_keyboard_ungrab (GDK_CURRENT_TIME);
+    gdk_device_ungrab (pointer, GDK_CURRENT_TIME);
 }
 
 
@@ -1147,28 +1150,31 @@ clock_plugin_pointer_grab (ClockPlugin *plugin,
                            GtkWidget   *widget,
                            gboolean     keep)
 {
-  GdkWindow     *window;
-  gboolean       grab_succeed = FALSE;
-  guint          i;
-  GdkEventMask   pointer_mask = GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK
-                                | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK
-                                | GDK_POINTER_MOTION_MASK;
+  GdkWindow        *window;
+  gboolean          grab_succeed = FALSE;
+  guint             i;
+  GdkDisplay       *display;
+  GdkDevice        *pointer;
+  GdkDeviceManager *device_manager;
+  GdkEventMask      pointer_mask = GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK
+                                 | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK
+                                 | GDK_POINTER_MOTION_MASK
+                                 | GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK;
 
-  window = widget->window;
+  window = gtk_widget_get_parent_window (widget);
+  display = gtk_widget_get_display (widget);
+  device_manager = gdk_display_get_device_manager (display);
+  pointer = gdk_device_manager_get_client_pointer (device_manager);
 
   /* don't try to get the grab for longer then 1/4 second */
   for (i = 0; i < (G_USEC_PER_SEC / 100 / 4); i++)
     {
-      plugin->grab_keyboard = gdk_keyboard_grab (window, TRUE, GDK_CURRENT_TIME);
-      if (plugin->grab_keyboard == GDK_GRAB_SUCCESS)
+      plugin->grab_pointer = gdk_device_grab (pointer, window, GDK_OWNERSHIP_NONE, TRUE, pointer_mask,
+                                              NULL, GDK_CURRENT_TIME);
+      if (plugin->grab_pointer == GDK_GRAB_SUCCESS)
         {
-          plugin->grab_pointer = gdk_pointer_grab (window, TRUE, pointer_mask,
-                                                   NULL, NULL, GDK_CURRENT_TIME);
-          if (plugin->grab_pointer == GDK_GRAB_SUCCESS)
-            {
-              grab_succeed = TRUE;
-              break;
-            }
+          grab_succeed = TRUE;
+          break;
         }
 
       g_usleep (100);
@@ -1196,13 +1202,16 @@ clock_plugin_calendar_pointed (GtkWidget *calendar_window,
                                gdouble    y_root)
 {
   gint          window_x, window_y;
+  GtkAllocation allocation;
 
   if (gtk_widget_get_mapped (calendar_window))
     {
-      gdk_window_get_position (calendar_window->window, &window_x, &window_y);
+      gdk_window_get_position (gtk_widget_get_parent_window (calendar_window), &window_x, &window_y);
 
-      if (x_root >= window_x && x_root < window_x + calendar_window->allocation.width &&
-          y_root >= window_y && y_root < window_y + calendar_window->allocation.height)
+      gtk_widget_get_allocation (calendar_window, &allocation);
+
+      if (x_root >= window_x && x_root < window_x + allocation.width &&
+          y_root >= window_y && y_root < window_y + allocation.height)
         return TRUE;
     }
 
@@ -1315,240 +1324,4 @@ clock_plugin_tooltip (gpointer user_data)
 
   /* keep the timeout running */
   return TRUE;
-}
-<<<<<<< HEAD
-=======
-
-
-
-static gboolean
-clock_plugin_timeout_running (gpointer user_data)
-{
-  ClockPluginTimeout *timeout = user_data;
-  gboolean            result;
-  struct tm           tm;
-
-  GDK_THREADS_ENTER ();
-  result = (timeout->function) (timeout->data);
-  GDK_THREADS_LEAVE ();
-
-  /* check if the timeout still runs in time if updating once a minute */
-  if (result && timeout->interval == CLOCK_INTERVAL_MINUTE)
-    {
-      /* sync again when we don't run on time */
-      clock_plugin_get_localtime (&tm);
-      timeout->restart = tm.tm_sec != 0;
-    }
-
-  return result && !timeout->restart;
-}
-
-
-
-static void
-clock_plugin_timeout_destroyed (gpointer user_data)
-{
-  ClockPluginTimeout *timeout = user_data;
-
-  timeout->timeout_id = 0;
-
-  if (G_UNLIKELY (timeout->restart))
-    clock_plugin_timeout_set_interval (timeout, timeout->interval);
-}
-
-
-
-static gboolean
-clock_plugin_timeout_sync (gpointer user_data)
-{
-  ClockPluginTimeout *timeout = user_data;
-
-  /* run the user function */
-  if ((timeout->function) (timeout->data))
-    {
-      /* start the real timeout */
-      timeout->timeout_id = g_timeout_add_seconds_full (G_PRIORITY_DEFAULT, timeout->interval,
-                                                        clock_plugin_timeout_running, timeout,
-                                                        clock_plugin_timeout_destroyed);
-    }
-  else
-    {
-      timeout->timeout_id = 0;
-    }
-
-  /* stop the sync timeout */
-  return FALSE;
-}
-
-
-
-ClockPluginTimeout *
-clock_plugin_timeout_new (guint       interval,
-                          GSourceFunc function,
-                          gpointer    data)
-{
-  ClockPluginTimeout *timeout;
-
-  panel_return_val_if_fail (interval > 0, NULL);
-  panel_return_val_if_fail (function != NULL, NULL);
-
-  timeout = g_slice_new0 (ClockPluginTimeout);
-  timeout->interval = 0;
-  timeout->function = function;
-  timeout->data = data;
-  timeout->timeout_id = 0;
-  timeout->restart = FALSE;
-
-  clock_plugin_timeout_set_interval (timeout, interval);
-
-  return timeout;
-}
-
-
-
-void
-clock_plugin_timeout_set_interval (ClockPluginTimeout *timeout,
-                                   guint               interval)
-{
-  struct tm tm;
-  guint     next_interval;
-  gboolean  restart = timeout->restart;
-
-  panel_return_if_fail (timeout != NULL);
-  panel_return_if_fail (interval > 0);
-
-  /* leave if nothing changed and we're not restarting */
-  if (!restart && timeout->interval == interval)
-    return;
-  timeout->interval = interval;
-  timeout->restart = FALSE;
-
-  /* stop running timeout */
-  if (G_LIKELY (timeout->timeout_id != 0))
-    g_source_remove (timeout->timeout_id);
-  timeout->timeout_id = 0;
-
-  /* run function when not restarting, leave if it returns false */
-  if (!restart && !(timeout->function) (timeout->data))
-    return;
-
-  /* get the seconds to the next internal */
-  if (interval == CLOCK_INTERVAL_MINUTE)
-    {
-      clock_plugin_get_localtime (&tm);
-      next_interval = 60 - tm.tm_sec;
-    }
-  else
-    {
-      next_interval = 0;
-    }
-
-  if (next_interval > 0)
-    {
-      /* start the sync timeout */
-      timeout->timeout_id = g_timeout_add_seconds_full (G_PRIORITY_DEFAULT, next_interval,
-                                                        clock_plugin_timeout_sync,
-                                                        timeout, NULL);
-    }
-  else
-    {
-      /* directly start running the normal timeout */
-      timeout->timeout_id = g_timeout_add_seconds_full (G_PRIORITY_DEFAULT, interval,
-                                                        clock_plugin_timeout_running, timeout,
-                                                        clock_plugin_timeout_destroyed);
-    }
-}
-
-
-
-void
-clock_plugin_timeout_free (ClockPluginTimeout *timeout)
-{
-  panel_return_if_fail (timeout != NULL);
-
-  timeout->restart = FALSE;
-  if (G_LIKELY (timeout->timeout_id != 0))
-    g_source_remove (timeout->timeout_id);
-  g_slice_free (ClockPluginTimeout, timeout);
-}
-
-
-
-void
-clock_plugin_get_localtime (struct tm *tm)
-{
-  time_t now = time (NULL);
-
-#ifndef HAVE_LOCALTIME_R
-  struct tm *tmbuf;
-
-  tmbuf = localtime (&now);
-  *tm = *tmbuf;
-#else
-  localtime_r (&now, tm);
-#endif
-}
-
-
-
-gchar *
-clock_plugin_strdup_strftime (const gchar     *format,
-                              const struct tm *tm)
-{
-  gchar *converted, *result;
-  gsize  length;
-  gchar  buffer[1024];
-
-  /* leave when format is null */
-  if (G_UNLIKELY (panel_str_is_empty (format)))
-    return NULL;
-
-  /* convert to locale, because that's what strftime uses */
-  converted = g_locale_from_utf8 (format, -1, NULL, NULL, NULL);
-  if (G_UNLIKELY (converted == NULL))
-    return NULL;
-
-  /* parse the time string */
-  length = strftime (buffer, sizeof (buffer), converted, tm);
-  if (G_UNLIKELY (length == 0))
-    buffer[0] = '\0';
-
-  /* convert the string back to utf-8 */
-  result = g_locale_to_utf8 (buffer, -1, NULL, NULL, NULL);
-
-  /* cleanup */
-  g_free (converted);
-
-  return result;
-}
-
-
-
-guint
-clock_plugin_interval_from_format (const gchar *format)
-{
-  const gchar *p;
-
-  if (G_UNLIKELY (panel_str_is_empty (format)))
-      return CLOCK_INTERVAL_MINUTE;
-
-  for (p = format; *p != '\0'; ++p)
-    {
-      if (p[0] == '%' && p[1] != '\0')
-        {
-          switch (*++p)
-            {
-            case 'c':
-            case 'N':
-            case 'r':
-            case 's':
-            case 'S':
-            case 'T':
-            case 'X':
-              return CLOCK_INTERVAL_SECOND;
-            }
-        }
-    }
-
-  return CLOCK_INTERVAL_MINUTE;
 }
