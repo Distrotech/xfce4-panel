@@ -949,8 +949,8 @@ panel_window_motion_notify_event (GtkWidget      *widget,
    * the panel that is currently dragged */
   if (event->x == 0 && event->y == 0)
     {
-      gdk_display_get_pointer (gtk_widget_get_display (widget),
-                               &screen, NULL, NULL, NULL);
+      gdk_device_get_position (event->device,
+                               &screen, NULL, NULL);
       if (screen != gtk_window_get_screen (GTK_WINDOW (window)))
         {
           gtk_window_set_screen (GTK_WINDOW (window), screen);
@@ -1033,12 +1033,13 @@ panel_window_button_press_event (GtkWidget      *widget,
       cursor = gdk_cursor_new_for_display (display, GDK_FLEUR);
 
       /* grab the pointer for dragging the window */
-      status = gdk_pointer_grab (event->window, FALSE,
-                                 GDK_BUTTON_MOTION_MASK
-                                 | GDK_BUTTON_RELEASE_MASK,
-                                 NULL, cursor, event->time);
+      status = gdk_device_grab (event->device, event->window,
+                                GDK_OWNERSHIP_NONE, FALSE,
+                                GDK_BUTTON_MOTION_MASK
+                                | GDK_BUTTON_RELEASE_MASK,
+                                cursor, event->time);
 
-      gdk_cursor_unref (cursor);
+      g_object_unref (cursor);
 
       /* set the grab info if the grab was successfully made */
       if (G_LIKELY (status == GDK_GRAB_SUCCESS))
@@ -1072,15 +1073,13 @@ panel_window_button_release_event (GtkWidget      *widget,
                                    GdkEventButton *event)
 {
   PanelWindow *window = PANEL_WINDOW (widget);
-  GdkDisplay  *display;
 
   panel_return_val_if_fail (PANEL_IS_WINDOW (window), FALSE);
 
   if (window->grab_time != 0)
     {
       /* ungrab the pointer */
-      display = gdk_screen_get_display (window->screen);
-      gdk_display_pointer_ungrab (display, window->grab_time);
+      gdk_device_ungrab (event->device, window->grab_time);
       window->grab_time = 0;
 
       /* store the new position */
@@ -1106,8 +1105,6 @@ panel_window_grab_notify (GtkWidget *widget,
 {
   PanelWindow *window = PANEL_WINDOW (widget);
   GtkWidget   *current;
-  GdkScreen   *screen;
-  gint         x, y;
 
   current = gtk_grab_get_current ();
   if (GTK_IS_MENU_SHELL (current))
@@ -1125,16 +1122,10 @@ panel_window_grab_notify (GtkWidget *widget,
     {
       if (current != NULL)
         {
-          gdk_display_get_pointer (gtk_widget_get_display (current),
-                                   &screen, &x, &y, NULL);
-
           /* filter out grab event that did not occur in the panel window,
            * but in a windows that is part of this process */
-          if (gtk_window_get_screen (GTK_WINDOW (window)) != screen
-              || x < window->alloc.x
-              || x > window->alloc.x + window->alloc.width
-              || y < window->alloc.y
-              || y > window->alloc.y + window->alloc.height)
+          if (gtk_widget_get_toplevel (GTK_WIDGET (window)) !=
+              gtk_widget_get_toplevel (current))
             {
               /* block the next notification */
               window->autohide_grab_block++;
