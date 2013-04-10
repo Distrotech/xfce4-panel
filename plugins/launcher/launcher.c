@@ -1675,7 +1675,7 @@ launcher_plugin_menu_popup (gpointer user_data)
 
       /* bit ugly... but show the menu */
       gtk_widget_show (plugin->menu);
-      gtk_window_move (GTK_WINDOW (gtk_widget_get_root_window (plugin->menu)), x, y);
+      gtk_window_move (GTK_WINDOW (gtk_widget_get_toplevel (plugin->menu)), x, y);
       gtk_widget_show (gtk_widget_get_toplevel (plugin->menu));
     }
 
@@ -2192,9 +2192,9 @@ launcher_plugin_arrow_drag_leave_timeout (gpointer user_data)
                            NULL, &pointer_x, &pointer_y, NULL);
 
   /* get the menu position */
-  gdk_window_get_root_origin (gtk_widget_get_root_window (menu), &menu_x, &menu_y);
-  menu_w = gdk_window_get_width (gtk_widget_get_root_window (menu));
-  menu_h = gdk_window_get_height (gtk_widget_get_root_window (menu));
+  gdk_window_get_root_origin (gtk_widget_get_window (menu), &menu_x, &menu_y);
+  menu_w = gdk_window_get_width (gtk_widget_get_window (menu));
+  menu_h = gdk_window_get_height (gtk_widget_get_window (menu));
 
   /* check if we should hide the menu */
   if (pointer_x < menu_x || pointer_x > menu_x + menu_w
