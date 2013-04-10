@@ -40,7 +40,7 @@
 
 #ifdef GDK_WINDOWING_X11
 #include <gdk/gdkx.h>
-#define LAUNCHER_WIDGET_XID(widget) ((guint) GDK_WINDOW_XID (GDK_WINDOW ((widget)->window)))
+#define LAUNCHER_WIDGET_XID(widget) ((guint) GDK_WINDOW_XID (gtk_widget_get_root_window (GTK_WIDGET (widget))))
 #else
 #define LAUNCHER_WIDGET_XID(widget) (0)
 #endif
@@ -205,8 +205,6 @@ launcher_dialog_add_populate_model_idle (gpointer user_data)
 
   panel_return_val_if_fail (GTK_IS_BUILDER (dialog->builder), FALSE);
 
-  GDK_THREADS_ENTER ();
-
   /* load the item pool */
   pool = launcher_plugin_garcon_menu_pool ();
 
@@ -215,8 +213,6 @@ launcher_dialog_add_populate_model_idle (gpointer user_data)
   g_hash_table_foreach (pool, launcher_dialog_add_store_insert, store);
 
   g_hash_table_destroy (pool);
-
-  GDK_THREADS_LEAVE ();
 
   return FALSE;
 }
@@ -244,7 +240,7 @@ launcher_dialog_add_populate_model (LauncherPluginDialog *dialog)
 
   /* fire an idle menu system load */
   if (G_LIKELY (dialog->idle_populate_id == 0))
-    dialog->idle_populate_id = g_idle_add_full (
+    dialog->idle_populate_id = gdk_threads_add_idle_full (
         G_PRIORITY_DEFAULT_IDLE,
         launcher_dialog_add_populate_model_idle,
         dialog, launcher_dialog_add_populate_model_idle_destroyed);
@@ -342,8 +338,8 @@ launcher_dialog_add_key_press_event (GtkTreeView          *treeview,
   panel_return_val_if_fail (GTK_IS_BUILDER (dialog->builder), FALSE);
   panel_return_val_if_fail (GTK_IS_TREE_VIEW (treeview), FALSE);
 
-  if (event->keyval == GDK_Return
-      || event->keyval == GDK_KP_Enter)
+  if (event->keyval == GDK_KEY_Return
+      || event->keyval == GDK_KEY_KP_Enter)
     return launcher_dialog_press_event (dialog, "button-add");
 
   return FALSE;
@@ -465,8 +461,6 @@ launcher_dialog_tree_save (LauncherPluginDialog *dialog)
   GObject   *store;
   GPtrArray *array;
 
-  GDK_THREADS_ENTER ();
-
   store = gtk_builder_get_object (dialog->builder, "item-store");
 
   array = g_ptr_array_new ();
@@ -480,8 +474,6 @@ launcher_dialog_tree_save (LauncherPluginDialog *dialog)
           G_CALLBACK (launcher_dialog_items_load), dialog);
 
   xfconf_array_free (array);
-
-  GDK_THREADS_LEAVE ();
 }
 
 
@@ -646,7 +638,7 @@ launcher_dialog_press_event (LauncherPluginDialog *dialog,
 
   object = gtk_builder_get_object (dialog->builder, object_name);
   panel_return_val_if_fail (GTK_IS_BUTTON (object), FALSE);
-  if (GTK_WIDGET_SENSITIVE (object))
+  if (gtk_widget_get_sensitive (GTK_WIDGET (object)))
     {
       gtk_button_clicked (GTK_BUTTON (object));
       return TRUE;
@@ -748,8 +740,8 @@ launcher_dialog_tree_key_press_event (GtkTreeView          *treeview,
   panel_return_val_if_fail (GTK_IS_BUILDER (dialog->builder), FALSE);
   panel_return_val_if_fail (GTK_IS_TREE_VIEW (treeview), FALSE);
 
-  if (event->keyval == GDK_Return
-      || event->keyval == GDK_KP_Enter)
+  if (event->keyval == GDK_KEY_Return
+      || event->keyval == GDK_KEY_KP_Enter)
     return launcher_dialog_press_event (dialog, "item-edit");
 
   return FALSE;
@@ -1019,7 +1011,7 @@ launcher_dialog_tree_row_changed (GtkTreeModel         *model,
   panel_return_if_fail (GTK_IS_BUILDER (dialog->builder));
 
   /* item moved with dnd, save the tree to update the plugin */
-  g_idle_add ((GSourceFunc) launcher_dialog_tree_save, dialog);
+  gdk_threads_add_idle ((GSourceFunc) launcher_dialog_tree_save, dialog);
 
   /* select the moved item to there is no selection change on reload */
   treeview = gtk_builder_get_object (dialog->builder, "item-treeview");

@@ -134,9 +134,9 @@ static void               launcher_plugin_button_drag_leave             (GtkWidg
                                                                          GdkDragContext       *context,
                                                                          guint                 drag_time,
                                                                          LauncherPlugin       *plugin);
-static gboolean           launcher_plugin_button_expose_event           (GtkWidget            *widget,
-                                                                         GdkEventExpose       *event,
-                                                                         LauncherPlugin       *launcher);
+static gboolean           launcher_plugin_button_draw                   (GtkWidget            *widget,
+                                                                         cairo_t              *cr,
+                                                                         LauncherPlugin       *plugin);
 static void               launcher_plugin_arrow_visibility              (LauncherPlugin       *plugin);
 static gboolean           launcher_plugin_arrow_press_event             (GtkWidget            *button,
                                                                          GdkEventButton       *event,
@@ -381,8 +381,8 @@ launcher_plugin_init (LauncherPlugin *plugin)
       G_CALLBACK (launcher_plugin_button_drag_drop), plugin);
   g_signal_connect (G_OBJECT (plugin->button), "drag-leave",
       G_CALLBACK (launcher_plugin_button_drag_leave), plugin);
-  g_signal_connect_after (G_OBJECT (plugin->button), "expose-event",
-      G_CALLBACK (launcher_plugin_button_expose_event), plugin);
+  g_signal_connect_after (G_OBJECT (plugin->button), "draw",
+      G_CALLBACK (launcher_plugin_button_draw), plugin);
 
   plugin->child = xfce_panel_image_new ();
   gtk_container_add (GTK_CONTAINER (plugin->button), plugin->child);
@@ -1178,7 +1178,7 @@ launcher_plugin_remote_event (XfcePanelPlugin *panel_plugin,
 
   if (g_strcmp0 (name, "popup") == 0
       && LIST_HAS_TWO_OR_MORE_ENTRIES (plugin->items)
-      && (plugin->menu == NULL || !GTK_WIDGET_VISIBLE (plugin->menu)))
+      && (plugin->menu == NULL || !gtk_widget_get_visible (plugin->menu)))
     {
       launcher_plugin_menu_popup (plugin);
 
@@ -1224,7 +1224,7 @@ launcher_plugin_save_delayed (LauncherPlugin *plugin)
   if (plugin->save_timeout_id != 0)
     g_source_remove (plugin->save_timeout_id);
 
-  plugin->save_timeout_id = g_timeout_add_seconds_full (G_PRIORITY_LOW, 1,
+  plugin->save_timeout_id = gdk_threads_add_timeout_seconds_full (G_PRIORITY_LOW, 1,
       launcher_plugin_save_delayed_timeout, plugin,
       launcher_plugin_save_delayed_timeout_destroyed);
 }
@@ -1268,7 +1268,7 @@ launcher_plugin_size_changed (XfcePanelPlugin *panel_plugin,
   a_width = a_height = -1;
 
   /* add the arrow size */
-  if (GTK_WIDGET_VISIBLE (plugin->arrow))
+  if (gtk_widget_get_visible (plugin->arrow))
     {
       /* if the panel is horizontal */
       horizontal = !!(xfce_panel_plugin_get_orientation (panel_plugin) ==
@@ -1393,7 +1393,7 @@ launcher_plugin_pack_widgets (LauncherPlugin *plugin)
   panel_return_if_fail (XFCE_IS_LAUNCHER_PLUGIN (plugin));
 
   /* leave when the arrow button is not visible */
-  if (!GTK_WIDGET_VISIBLE (plugin->arrow)
+  if (!gtk_widget_get_visible (plugin->arrow)
       || plugin->arrow_position == LAUNCHER_ARROW_INTERNAL)
     return;
 
@@ -1538,7 +1538,7 @@ launcher_plugin_menu_item_drag_data_received (GtkWidget          *widget,
     }
 
   /* hide the menu */
-  gtk_widget_hide (GTK_MENU (plugin->menu)->toplevel);
+  gtk_widget_hide (gtk_widget_get_toplevel (plugin->menu));
   gtk_widget_hide (plugin->menu);
 
   /* inactivate the toggle button */
@@ -1648,8 +1648,6 @@ launcher_plugin_menu_popup (gpointer user_data)
 
   panel_return_val_if_fail (XFCE_IS_LAUNCHER_PLUGIN (plugin), FALSE);
 
-  GDK_THREADS_ENTER ();
-
   /* construct the menu if needed */
   if (plugin->menu == NULL)
     launcher_plugin_menu_construct (plugin);
@@ -1665,10 +1663,10 @@ launcher_plugin_menu_popup (gpointer user_data)
 
   /* fallback to manual positioning, this is used with
    * drag motion over the arrow button */
-  if (!GTK_WIDGET_VISIBLE (plugin->menu))
+  if (!gtk_widget_get_visible (plugin->menu))
     {
       /* make sure the size is allocated */
-      if (!GTK_WIDGET_REALIZED (plugin->menu))
+      if (!gtk_widget_get_realized (plugin->menu))
         gtk_widget_realize (plugin->menu);
 
       /* use the widget position function to get the coordinates */
@@ -1677,11 +1675,9 @@ launcher_plugin_menu_popup (gpointer user_data)
 
       /* bit ugly... but show the menu */
       gtk_widget_show (plugin->menu);
-      gtk_window_move (GTK_WINDOW (GTK_MENU (plugin->menu)->toplevel), x, y);
-      gtk_widget_show (GTK_MENU (plugin->menu)->toplevel);
+      gtk_window_move (GTK_WINDOW (gtk_widget_get_root_window (plugin->menu)), x, y);
+      gtk_widget_show (gtk_widget_get_toplevel (plugin->menu));
     }
-
-  GDK_THREADS_LEAVE ();
 
   return FALSE;
 }
@@ -1775,9 +1771,9 @@ launcher_plugin_button_state_changed (GtkWidget    *button_a,
                                       GtkStateType  state,
                                       GtkWidget    *button_b)
 {
-  if (GTK_WIDGET_STATE (button_a) != GTK_WIDGET_STATE (button_b)
-      && GTK_WIDGET_STATE (button_a) != GTK_STATE_INSENSITIVE)
-    gtk_widget_set_state (button_b, GTK_WIDGET_STATE (button_a));
+  if (gtk_widget_get_state_flags (button_a) != gtk_widget_get_state_flags (button_b)
+      && (gtk_widget_get_state_flags (button_a) & GTK_STATE_INSENSITIVE))
+    gtk_widget_set_state_flags (button_b, gtk_widget_get_state_flags (button_a), TRUE);
 }
 
 
@@ -1812,10 +1808,10 @@ launcher_plugin_button_press_event (GtkWidget      *button,
     {
       /* start the popup timeout */
       plugin->menu_timeout_id =
-          g_timeout_add_full (G_PRIORITY_DEFAULT_IDLE,
-                              MENU_POPUP_DELAY,
-                              launcher_plugin_menu_popup, plugin,
-                              launcher_plugin_menu_popup_destroyed);
+        gdk_threads_add_timeout_full (G_PRIORITY_DEFAULT_IDLE,
+                                      MENU_POPUP_DELAY,
+                                      launcher_plugin_menu_popup, plugin,
+                                      launcher_plugin_menu_popup_destroyed);
     }
 
   return FALSE;
@@ -1839,7 +1835,6 @@ launcher_plugin_button_release_event (GtkWidget      *button,
 
   /* leave when there are no menu items or there is an internal arrow */
   if (plugin->items == NULL
-      || !GTK_BUTTON (button)->in_button
       || ARROW_INSIDE_BUTTON (plugin))
     return FALSE;
 
@@ -1954,7 +1949,7 @@ launcher_plugin_supported_drop (GdkDragContext *context,
     return GDK_NONE;
 
   /* check if we support the target */
-  for (li = context->targets; li; li = li->next)
+  for (li = gdk_drag_context_list_targets (context); li; li = li->next)
     {
       target = GDK_POINTER_TO_ATOM (li->data);
       for (i = 0; i < G_N_ELEMENTS (drop_targets); i++)
@@ -2042,14 +2037,18 @@ launcher_plugin_button_drag_leave (GtkWidget      *widget,
 
 
 static gboolean
-launcher_plugin_button_expose_event (GtkWidget      *widget,
-                                     GdkEventExpose *event,
-                                     LauncherPlugin *plugin)
+launcher_plugin_button_draw (GtkWidget      *widget,
+                             cairo_t        *cr,
+                             LauncherPlugin *plugin)
 {
-  GtkArrowType arrow_type;
-  gint         size, x, y, thickness, offset;
+  GtkArrowType      arrow_type;
+  gdouble           angle;
+  gint              size, x, y, offset;
+  GtkAllocation     allocation;
+  GtkStyleContext  *ctx;
+  GtkBorder         padding;
 
-  panel_return_val_if_fail (XFCE_IS_LAUNCHER_PLUGIN (plugin), FALSE);
+  panel_return_val_if_fail (XFCE_IS_LAUNCHER_PLUGIN (widget), FALSE);
 
   /* leave when the arrow is not shown inside the button */
   if (NO_ARROW_INSIDE_BUTTON (plugin))
@@ -2059,31 +2058,38 @@ launcher_plugin_button_expose_event (GtkWidget      *widget,
   arrow_type = xfce_arrow_button_get_arrow_type (XFCE_ARROW_BUTTON (plugin->arrow));
 
   /* style thickness */
-  thickness = MAX (widget->style->xthickness, widget->style->ythickness);
+  ctx = gtk_widget_get_style_context (widget);
+  gtk_style_context_get_padding (ctx, gtk_widget_get_state_flags (widget), &padding);
 
   /* size of the arrow and the start coordinates */
-  size = widget->allocation.width / 3;
-  x = widget->allocation.x + thickness;
-  y = widget->allocation.y + thickness;
-  offset = size + 2 * thickness;
+  gtk_widget_get_allocation (widget, &allocation);
+
+  size = allocation.width / 3;
+  x = allocation.x + padding.left;
+  y = allocation.y + padding.top;
+  offset = size + padding.left + padding.right;
+  angle = 1.5 * G_PI;
 
   /* calculate the position based on the arrow type */
   switch (arrow_type)
     {
     case GTK_ARROW_UP:
       /* north east */
-      x += widget->allocation.width - offset;
+      x += allocation.width - offset;
+      angle = 0.0 * G_PI;
       break;
 
     case GTK_ARROW_DOWN:
       /* south west */
-      y += widget->allocation.height - offset;
+      y += allocation.height - offset;
+      angle = 1.0 * G_PI;
       break;
 
     case GTK_ARROW_RIGHT:
       /* south east */
-      x += widget->allocation.width - offset;
-      y += widget->allocation.height - offset;
+      x += allocation.width - offset;
+      y += allocation.height - offset;
+      angle = 0.5 * G_PI;
       break;
 
     default:
@@ -2092,10 +2098,7 @@ launcher_plugin_button_expose_event (GtkWidget      *widget,
     }
 
   /* paint the arrow */
-  gtk_paint_arrow (widget->style, widget->window,
-                   GTK_WIDGET_STATE (widget), GTK_SHADOW_IN,
-                   &(event->area), widget, "launcher_button",
-                   arrow_type, TRUE, x, y, size, size);
+  gtk_render_arrow (ctx, cr, angle, (gdouble) x, (gdouble) y, (gdouble) size);
 
   return FALSE;
 }
@@ -2159,9 +2162,9 @@ launcher_plugin_arrow_drag_motion (GtkWidget      *widget,
 
       /* start the popup timeout */
       plugin->menu_timeout_id =
-          g_timeout_add_full (G_PRIORITY_DEFAULT_IDLE, MENU_POPUP_DELAY,
-                              launcher_plugin_menu_popup, plugin,
-                              launcher_plugin_menu_popup_destroyed);
+        gdk_threads_add_timeout_full (G_PRIORITY_DEFAULT_IDLE, MENU_POPUP_DELAY,
+                                      launcher_plugin_menu_popup, plugin,
+                                      launcher_plugin_menu_popup_destroyed);
     }
 
   return TRUE;
@@ -2178,7 +2181,7 @@ launcher_plugin_arrow_drag_leave_timeout (gpointer user_data)
   gint            menu_x, menu_y, menu_w, menu_h;
 
   panel_return_val_if_fail (XFCE_IS_LAUNCHER_PLUGIN (plugin), FALSE);
-  panel_return_val_if_fail (menu == NULL || GDK_IS_WINDOW (menu->window), FALSE);
+  panel_return_val_if_fail (menu == NULL || gtk_widget_get_has_window (menu), FALSE);
 
   /* leave when the menu is destroyed */
   if (G_UNLIKELY (plugin->menu == NULL))
@@ -2189,15 +2192,16 @@ launcher_plugin_arrow_drag_leave_timeout (gpointer user_data)
                            NULL, &pointer_x, &pointer_y, NULL);
 
   /* get the menu position */
-  gdk_window_get_root_origin (menu->window, &menu_x, &menu_y);
-  gdk_drawable_get_size (GDK_DRAWABLE (menu->window), &menu_w, &menu_h);
+  gdk_window_get_root_origin (gtk_widget_get_root_window (menu), &menu_x, &menu_y);
+  menu_w = gdk_window_get_width (gtk_widget_get_root_window (menu));
+  menu_h = gdk_window_get_height (gtk_widget_get_root_window (menu));
 
   /* check if we should hide the menu */
   if (pointer_x < menu_x || pointer_x > menu_x + menu_w
       || pointer_y < menu_y || pointer_y > menu_y + menu_h)
     {
       /* hide the menu */
-      gtk_widget_hide (GTK_MENU (menu)->toplevel);
+      gtk_widget_hide (gtk_widget_get_toplevel (menu));
       gtk_widget_hide (menu);
 
       /* inactive the toggle button */
@@ -2228,7 +2232,7 @@ launcher_plugin_arrow_drag_leave (GtkWidget      *widget,
   else
     {
       /* start a timeout to give the user some time to drag to the menu */
-      g_timeout_add (MENU_POPUP_DELAY, launcher_plugin_arrow_drag_leave_timeout, plugin);
+      gdk_threads_add_timeout (MENU_POPUP_DELAY, launcher_plugin_arrow_drag_leave_timeout, plugin);
     }
 }
 
@@ -2382,7 +2386,7 @@ launcher_plugin_item_exec_from_clipboard (GarconMenuItem *item,
   GtkClipboard     *clipboard;
   gchar            *text = NULL;
   GSList           *uri_list;
-  GtkSelectionData  data;
+  //GtkSelectionData  data;
 
   panel_return_if_fail (GARCON_IS_MENU_ITEM (item));
   panel_return_if_fail (GDK_IS_SCREEN (screen));
@@ -2404,18 +2408,18 @@ launcher_plugin_item_exec_from_clipboard (GarconMenuItem *item,
   if (!panel_str_is_empty (text))
     {
       /* create fake selection data */
-      data.data = (guchar *) text;
-      data.length = strlen (text);
-      data.target = GDK_NONE;
+      //data.data = (guchar *) text;      //HOWTO?
+      //data.length = strlen (text);
+      //data.target = GDK_NONE;
 
       /* extract the uris from the selection data */
-      uri_list = launcher_plugin_uri_list_extract (&data);
+      //uri_list = launcher_plugin_uri_list_extract (&data);
 
       /* launch with the uri list */
-      launcher_plugin_item_exec (item, event_time,
-                                 screen, uri_list);
+      //launcher_plugin_item_exec (item, event_time,
+      //                           screen, uri_list);
 
-      launcher_plugin_uri_list_free (uri_list);
+      //launcher_plugin_uri_list_free (uri_list);
     }
 
   g_free (text);
@@ -2549,14 +2553,14 @@ launcher_plugin_uri_list_extract (GtkSelectionData *data)
   gchar   *uri;
 
   /* leave if there is no data */
-  if (data->length <= 0)
+  if (gtk_selection_data_get_length (data) <= 0)
     return NULL;
 
   /* extract the files */
-  if (data->target == gdk_atom_intern_static_string ("text/uri-list"))
+  if (gtk_selection_data_get_target (data) == gdk_atom_intern_static_string ("text/uri-list"))
     {
       /* extract the list of uris */
-      array = g_uri_list_extract_uris ((gchar *) data->data);
+      array = g_uri_list_extract_uris ((gchar *) gtk_selection_data_get_data (data));
       if (G_UNLIKELY (array == NULL))
         return NULL;
 
@@ -2574,7 +2578,7 @@ launcher_plugin_uri_list_extract (GtkSelectionData *data)
   else
     {
       /* split the data on new lines */
-      array = g_strsplit_set ((const gchar *) data->data, "\n\r", -1);
+      array = g_strsplit_set ((const gchar *) gtk_selection_data_get_data (data), "\n\r", -1);
       if (G_UNLIKELY (array == NULL))
         return NULL;
 
