@@ -2048,7 +2048,7 @@ launcher_plugin_button_draw (GtkWidget      *widget,
   GtkStyleContext  *ctx;
   GtkBorder         padding;
 
-  panel_return_val_if_fail (XFCE_IS_LAUNCHER_PLUGIN (widget), FALSE);
+  panel_return_val_if_fail (XFCE_IS_LAUNCHER_PLUGIN (plugin), FALSE);
 
   /* leave when the arrow is not shown inside the button */
   if (NO_ARROW_INSIDE_BUTTON (plugin))
