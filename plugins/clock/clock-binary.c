@@ -489,7 +489,7 @@ xfce_clock_binary_draw (GtkWidget *widget,
   GtkSymbolicColor *shade;
 
   panel_return_val_if_fail (XFCE_CLOCK_IS_BINARY (binary), FALSE);
-  panel_return_val_if_fail (gtk_widget_get_has_window (widget), FALSE);
+  //panel_return_val_if_fail (gtk_widget_get_has_window (widget), FALSE);
   panel_return_val_if_fail (cr != NULL, FALSE);
 
   gtk_misc_get_padding (GTK_MISC (widget), &pad_x, &pad_y);
