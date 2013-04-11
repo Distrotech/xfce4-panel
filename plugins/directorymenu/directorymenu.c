@@ -476,7 +476,7 @@ directory_menu_plugin_remote_event (XfcePanelPlugin *panel_plugin,
   panel_return_val_if_fail (value == NULL || G_IS_VALUE (value), FALSE);
 
   if (strcmp (name, "popup") == 0
-      && GTK_WIDGET_VISIBLE (panel_plugin)
+      && gtk_widget_get_visible (GTK_WIDGET (panel_plugin))
       && !gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (plugin->button))
       && panel_utils_grab_available ())
     {
@@ -556,11 +556,13 @@ directory_menu_plugin_menu_launch_desktop_file (GtkWidget *mi,
   GdkAppLaunchContext *context;
   GIcon               *icon;
   GError              *error = NULL;
+  GdkDisplay          *display;
 
   panel_return_if_fail (G_IS_APP_INFO (info));
   panel_return_if_fail (GTK_IS_WIDGET (mi));
 
-  context = gdk_app_launch_context_new ();
+  display = gtk_widget_get_display (mi);
+  context = gdk_display_get_app_launch_context (display);
   gdk_app_launch_context_set_screen (context, gtk_widget_get_screen (mi));
   gdk_app_launch_context_set_timestamp (context, gtk_get_current_event_time ());
   icon = g_app_info_get_icon (info);
@@ -592,6 +594,7 @@ directory_menu_plugin_menu_launch (GtkWidget *mi,
   GFileInfo           *info;
   const gchar         *message;
   gboolean             result;
+  GdkDisplay          *display;
 
   panel_return_if_fail (G_IS_FILE (file));
   panel_return_if_fail (GTK_IS_WIDGET (mi));
@@ -615,7 +618,8 @@ directory_menu_plugin_menu_launch (GtkWidget *mi,
 
   fake_list.data = file;
 
-  context = gdk_app_launch_context_new ();
+  display = gtk_widget_get_display (mi);
+  context = gdk_display_get_app_launch_context (display);
   gdk_app_launch_context_set_screen (context, gtk_widget_get_screen (mi));
   gdk_app_launch_context_set_timestamp (context, gtk_get_current_event_time ());
 
