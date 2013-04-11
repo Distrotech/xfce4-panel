@@ -584,7 +584,7 @@ window_menu_plugin_remote_event (XfcePanelPlugin *panel_plugin,
   panel_return_val_if_fail (value == NULL || G_IS_VALUE (value), FALSE);
 
   if (strcmp (name, "popup") == 0
-      && GTK_WIDGET_VISIBLE (panel_plugin)
+      && gtk_widget_get_visible (GTK_WIDGET (panel_plugin))
       && !gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (plugin->button))
       && panel_utils_grab_available ())
     {
@@ -904,7 +904,7 @@ window_menu_plugin_menu_window_item_activate (GtkWidget      *mi,
 
   panel_return_val_if_fail (WNCK_IS_WINDOW (window), FALSE);
   panel_return_val_if_fail (GTK_IS_MENU_ITEM (mi), FALSE);
-  panel_return_val_if_fail (GTK_IS_MENU_SHELL (mi->parent), FALSE);
+  panel_return_val_if_fail (GTK_IS_MENU_SHELL (gtk_widget_get_parent (mi)), FALSE);
 
   /* only respond to a button releases */
   if (event->type != GDK_BUTTON_RELEASE)
@@ -1074,15 +1074,15 @@ window_menu_plugin_menu_key_press_event (GtkWidget   *menu,
   /* construct an event */
   switch (event->keyval)
     {
-    case GDK_space:
-    case GDK_Return:
-    case GDK_KP_Space:
-    case GDK_KP_Enter:
+    case GDK_KEY_space:
+    case GDK_KEY_Return:
+    case GDK_KEY_KP_Space:
+    case GDK_KEY_KP_Enter:
       /* active the menu item */
       fake_event.button = 1;
       break;
 
-    case GDK_Menu:
+    case GDK_KEY_Menu:
       /* popup the window actions menu */
       fake_event.button = 3;
       break;
