@@ -297,18 +297,16 @@ pager_plugin_screen_layout_changed (PagerPlugin *plugin)
 
   if (plugin->miniature_view)
     {
-      plugin->pager = wnck_pager_new (plugin->wnck_screen);
+      plugin->pager = wnck_pager_new ();
       wnck_pager_set_display_mode (WNCK_PAGER (plugin->pager), WNCK_PAGER_DISPLAY_CONTENT);
       if (!wnck_pager_set_n_rows (WNCK_PAGER (plugin->pager), plugin->rows))
         g_message ("Setting the pager rows returned false. Maybe the setting is not applied.");
 
-#ifdef WNCK_CHECK_VERSION
-#if WNCK_CHECK_VERSION (2,31,0)
+#if 0
       wnck_pager_set_layout_policy (WNCK_PAGER (plugin->pager),
                                     (mode == XFCE_PANEL_PLUGIN_MODE_HORIZONTAL) ?
                                     WNCK_PAGER_LAYOUT_POLICY_WIDTH_FOR_HEIGHT :
                                     WNCK_PAGER_LAYOUT_POLICY_HEIGHT_FOR_WIDTH);
-#endif
 #endif
       wnck_pager_set_orientation (WNCK_PAGER (plugin->pager), orientation);
     }
@@ -421,13 +419,11 @@ pager_plugin_mode_changed (XfcePanelPlugin     *panel_plugin,
 
   if (plugin->miniature_view)
     {
-#ifdef WNCK_CHECK_VERSION
-#if WNCK_CHECK_VERSION (2,31,0)
+#if 0
       wnck_pager_set_layout_policy (WNCK_PAGER (plugin->pager),
                                     (mode == XFCE_PANEL_PLUGIN_MODE_HORIZONTAL) ?
                                     WNCK_PAGER_LAYOUT_POLICY_WIDTH_FOR_HEIGHT :
                                     WNCK_PAGER_LAYOUT_POLICY_HEIGHT_FOR_WIDTH);
-#endif
 #endif
       wnck_pager_set_orientation (WNCK_PAGER (plugin->pager), orientation);
     }
