@@ -54,8 +54,8 @@ static void     systray_plugin_orientation_changed          (XfcePanelPlugin    
 static gboolean systray_plugin_size_changed                 (XfcePanelPlugin       *panel_plugin,
                                                              gint                   size);
 static void     systray_plugin_configure_plugin             (XfcePanelPlugin       *panel_plugin);
-static void     systray_plugin_box_expose_event             (GtkWidget             *box,
-                                                             GdkEventExpose        *event);
+static void     systray_plugin_box_draw                     (GtkWidget             *box,
+                                                             cairo_t               *cr);
 static void     systray_plugin_button_toggled               (GtkWidget             *button,
                                                              SystrayPlugin         *plugin);
 static void     systray_plugin_button_set_arrow             (SystrayPlugin         *plugin);
@@ -210,7 +210,7 @@ systray_plugin_class_init (SystrayPluginClass *klass)
 static void
 systray_plugin_init (SystrayPlugin *plugin)
 {
-  GtkRcStyle *style;
+  //GtkRcStyle *style;
 
   plugin->manager = NULL;
   plugin->show_frame = TRUE;
@@ -222,10 +222,11 @@ systray_plugin_init (SystrayPlugin *plugin)
   gtk_frame_set_shadow_type (GTK_FRAME (plugin->frame), GTK_SHADOW_ETCHED_IN);
   gtk_widget_show (plugin->frame);
 
-  style = gtk_rc_style_new ();
-  style->xthickness = style->ythickness = 1;
-  gtk_widget_modify_style (plugin->frame, style);
-  g_object_unref (G_OBJECT (style));
+  // FIXME
+  //style = gtk_rc_style_new ();
+  //style->xthickness = style->ythickness = 1;
+  //gtk_widget_modify_style (plugin->frame, style);
+  //g_object_unref (G_OBJECT (style));
 
   plugin->hvbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 2);
   gtk_container_add (GTK_CONTAINER (plugin->frame), plugin->hvbox);
@@ -233,8 +234,8 @@ systray_plugin_init (SystrayPlugin *plugin)
 
   plugin->box = systray_box_new ();
   gtk_box_pack_start (GTK_BOX (plugin->hvbox), plugin->box, TRUE, TRUE, 0);
-  g_signal_connect (G_OBJECT (plugin->box), "expose-event",
-      G_CALLBACK (systray_plugin_box_expose_event), NULL);
+  g_signal_connect (G_OBJECT (plugin->box), "draw",
+      G_CALLBACK (systray_plugin_box_draw), NULL);
   gtk_container_set_border_width (GTK_CONTAINER (plugin->box), FRAME_SPACING);
   gtk_widget_show (plugin->box);
 
@@ -306,7 +307,7 @@ systray_plugin_set_property (GObject      *object,
   const GValue  *tmp;
   gchar         *name;
   guint          i;
-  GtkRcStyle    *style;
+  //GtkRcStyle    *style;
 
   switch (prop_id)
     {
@@ -323,10 +324,11 @@ systray_plugin_set_property (GObject      *object,
           gtk_frame_set_shadow_type (GTK_FRAME (plugin->frame),
               show_frame ? GTK_SHADOW_ETCHED_IN : GTK_SHADOW_NONE);
 
-          style = gtk_rc_style_new ();
-          style->xthickness = style->ythickness = show_frame ? 1 : 0;
-          gtk_widget_modify_style (plugin->frame, style);
-          g_object_unref (G_OBJECT (style));
+          // FIXME
+          //style = gtk_rc_style_new ();
+          //style->xthickness = style->ythickness = show_frame ? 1 : 0;
+          //gtk_widget_modify_style (plugin->frame, style);
+          //g_object_unref (G_OBJECT (style));
 
           systray_plugin_size_changed (XFCE_PANEL_PLUGIN (plugin),
               xfce_panel_plugin_get_size (XFCE_PANEL_PLUGIN (plugin)));
@@ -375,8 +377,6 @@ systray_plugin_screen_changed_idle (gpointer user_data)
   GdkScreen     *screen;
   GError        *error = NULL;
 
-  GDK_THREADS_ENTER ();
-
   /* create a new manager and register this screen */
   plugin->manager = systray_manager_new ();
   g_signal_connect (G_OBJECT (plugin->manager), "icon-added",
@@ -399,8 +399,6 @@ systray_plugin_screen_changed_idle (gpointer user_data)
       xfce_dialog_show_error (NULL, error, _("Unable to start the notification area"));
       g_error_free (error);
     }
-
-  GDK_THREADS_LEAVE ();
 
   return FALSE;
 }
@@ -431,8 +429,8 @@ systray_plugin_screen_changed (GtkWidget *widget,
 
   /* schedule a delayed startup */
   if (plugin->idle_startup == 0)
-    plugin->idle_startup = g_idle_add_full (G_PRIORITY_LOW, systray_plugin_screen_changed_idle,
-                                            plugin, systray_plugin_screen_changed_idle_destroyed);
+    plugin->idle_startup = gdk_threads_add_idle_full (G_PRIORITY_LOW, systray_plugin_screen_changed_idle,
+                                                      plugin, systray_plugin_screen_changed_idle_destroyed);
 }
 
 
@@ -526,9 +524,11 @@ static gboolean
 systray_plugin_size_changed (XfcePanelPlugin *panel_plugin,
                              gint             size)
 {
-  SystrayPlugin *plugin = XFCE_SYSTRAY_PLUGIN (panel_plugin);
-  GtkWidget     *frame = plugin->frame;
-  gint           border = 0;
+  SystrayPlugin    *plugin = XFCE_SYSTRAY_PLUGIN (panel_plugin);
+  GtkWidget        *frame = plugin->frame;
+  gint              border = 0;
+  GtkStyleContext  *ctx;
+  GtkBorder         padding;
 
   /* set the frame border */
   if (plugin->show_frame && size > 26)
@@ -539,8 +539,12 @@ systray_plugin_size_changed (XfcePanelPlugin *panel_plugin,
    * behind the allocated size when resizing and during startup, we
    * correct the maximum size set by the user with the size the panel
    * will most likely allocated */
-  border += MAX (frame->style->xthickness, frame->style->ythickness);
-  systray_box_set_size_alloc (XFCE_SYSTRAY_BOX (plugin->box), size - 2 * border);
+
+  ctx = gtk_widget_get_style_context (frame);
+  gtk_style_context_get_padding (ctx, gtk_widget_get_state_flags (frame), &padding);
+
+  border += MAX (padding.left+padding.right, padding.top+padding.bottom);
+  systray_box_set_size_alloc (XFCE_SYSTRAY_BOX (plugin->box), size - border);
 
   return TRUE;
 }
@@ -595,21 +599,22 @@ systray_plugin_configure_plugin (XfcePanelPlugin *panel_plugin)
 
 
 static void
-systray_plugin_box_expose_event_icon (GtkWidget *child,
-                                      gpointer   user_data)
+systray_plugin_box_draw_icon (GtkWidget *child,
+                              gpointer   user_data)
 {
   cairo_t       *cr = user_data;
-  GtkAllocation *alloc;
+  GtkAllocation  alloc;
 
   if (systray_socket_is_composited (XFCE_SYSTRAY_SOCKET (child)))
     {
-      alloc = &child->allocation;
+      gtk_widget_get_allocation (child, &alloc);
 
       /* skip hidden (see offscreen in box widget) icons */
-      if (alloc->x > -1 && alloc->y > -1)
+      if (alloc.x > -1 && alloc.y > -1)
         {
-          gdk_cairo_set_source_pixmap (cr, gtk_widget_get_window (child),
-                                       alloc->x, alloc->y);
+          // FIXME
+          //gdk_cairo_set_source_pixmap (cr, gtk_widget_get_window (child),
+          //                             alloc.x, alloc.y);
           cairo_paint (cr);
         }
     }
@@ -618,27 +623,18 @@ systray_plugin_box_expose_event_icon (GtkWidget *child,
 
 
 static void
-systray_plugin_box_expose_event (GtkWidget      *box,
-                                 GdkEventExpose *event)
+systray_plugin_box_draw (GtkWidget *box,
+                         cairo_t   *cr)
 {
-  cairo_t *cr;
+  panel_return_if_fail (cr != NULL);
 
   if (!gtk_widget_is_composited (box))
     return;
 
-  cr = gdk_cairo_create (gtk_widget_get_window (box));
-  if (G_LIKELY (cr != NULL))
-    {
-      gdk_cairo_rectangle (cr, &event->area);
-      cairo_clip (cr);
-
-      /* separately draw all the composed tray icons after gtk
-       * handled the expose event */
-      gtk_container_foreach (GTK_CONTAINER (box),
-          systray_plugin_box_expose_event_icon, cr);
-
-      cairo_destroy (cr);
-    }
+  /* separately draw all the composed tray icons after gtk
+   * handled the draw event */
+  gtk_container_foreach (GTK_CONTAINER (box),
+                         systray_plugin_box_draw_icon, cr);
 }
 
 
