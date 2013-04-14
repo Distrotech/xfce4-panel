@@ -47,8 +47,9 @@ static void               panel_itembar_get_property         (GObject         *o
                                                               GValue          *value,
                                                               GParamSpec      *pspec);
 static void               panel_itembar_finalize             (GObject         *object);
-static void               panel_itembar_size_request         (GtkWidget       *widget,
-                                                              GtkRequisition  *requisition);
+static void               panel_itembar_get_preferred_length (GtkWidget       *widget,
+                                                              gint            *minimum_length,
+                                                              gint            *natural_length);
 static void               panel_itembar_get_preferred_width  (GtkWidget       *widget,
                                                               gint            *minimum_width,
                                                               gint            *natural_width);
@@ -310,17 +311,17 @@ panel_itembar_finalize (GObject *object)
   (IS_HORIZONTAL (itembar) ? child_req.width : child_req.height)
 
 static void
-panel_itembar_size_request (GtkWidget      *widget,
-                            GtkRequisition *requisition)
+panel_itembar_get_preferred_length (GtkWidget      *widget,
+                                    gint           *minimum_length,
+                                    gint           *natural_length)
 {
   PanelItembar      *itembar = PANEL_ITEMBAR (widget);
   GSList            *li;
   PanelItembarChild *child;
-  GtkRequisition     child_req;
+  GtkRequisition     child_req, child_req_min;
   gint               border_width;
   gint               row_max_size;
   gint               col_count;
-  gint               rows_size;
   gint               total_len;
   gint               child_len;
 
@@ -341,7 +342,7 @@ panel_itembar_size_request (GtkWidget      *widget,
             continue;
 
           /* get the child's size request */
-          gtk_widget_get_preferred_size (child->widget, &child_req, NULL);
+          gtk_widget_get_preferred_size (child->widget, &child_req_min, &child_req);
 
           /* check if the small child fits in a row */
           if (child->option == CHILD_OPTION_SMALL
@@ -380,21 +381,10 @@ panel_itembar_size_request (GtkWidget      *widget,
         }
     }
 
-  /* the size property stored in the itembar is that of a single row */
-  rows_size = itembar->size * itembar->nrows;
-
   /* return the total size */
   border_width = gtk_container_get_border_width (GTK_CONTAINER (widget)) * 2;
-  if (IS_HORIZONTAL (itembar))
-    {
-      requisition->width = total_len + border_width;
-      requisition->height = rows_size + border_width;
-    }
-  else
-    {
-      requisition->height = total_len + border_width;
-      requisition->width = rows_size + border_width;
-    }
+  *natural_length = total_len + border_width;
+  *minimum_length = total_len + border_width;
 }
 
 
@@ -405,14 +395,11 @@ panel_itembar_get_preferred_width (GtkWidget *widget,
                                    gint      *natural_width)
 {
   PanelItembar   *itembar = PANEL_ITEMBAR (widget);
-  GtkRequisition  request;
   gint            size;
 
   if (IS_HORIZONTAL (itembar))
     {
-      panel_itembar_size_request (widget, &request);
-      *minimum_width = request.width;
-      *natural_width = request.width;
+      panel_itembar_get_preferred_length (widget, minimum_width, natural_width);
     }
   else
     {
@@ -432,7 +419,6 @@ panel_itembar_get_preferred_height (GtkWidget *widget,
                                     gint      *natural_height)
 {
   PanelItembar   *itembar = PANEL_ITEMBAR (widget);
-  GtkRequisition  request;
   gint            size;
 
   if (IS_HORIZONTAL (itembar))
@@ -445,9 +431,7 @@ panel_itembar_get_preferred_height (GtkWidget *widget,
     }
   else
     {
-      panel_itembar_size_request (widget, &request);
-      *minimum_height = request.height;
-      *natural_height = request.height;
+      panel_itembar_get_preferred_length (widget, minimum_height, natural_height);
     }
 }
 
