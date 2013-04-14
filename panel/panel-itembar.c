@@ -404,12 +404,24 @@ panel_itembar_get_preferred_width (GtkWidget *widget,
                                    gint      *minimum_width,
                                    gint      *natural_width)
 {
-  GtkRequisition request;
+  PanelItembar   *itembar = PANEL_ITEMBAR (widget);
+  GtkRequisition  request;
+  gint            size;
 
-  panel_itembar_size_request (widget, &request);
+  if (IS_HORIZONTAL (itembar))
+    {
+      panel_itembar_size_request (widget, &request);
+      *minimum_width = request.width;
+      *natural_width = request.width;
+    }
+  else
+    {
+      size = itembar->size * itembar->nrows +
+        gtk_container_get_border_width (GTK_CONTAINER (widget)) * 2;
 
-  *minimum_width = request.width;
-  *natural_width = request.width;
+      *minimum_width = size;
+      *natural_width = size;
+    }
 }
 
 
@@ -419,12 +431,24 @@ panel_itembar_get_preferred_height (GtkWidget *widget,
                                     gint      *minimum_height,
                                     gint      *natural_height)
 {
-  GtkRequisition request;
+  PanelItembar   *itembar = PANEL_ITEMBAR (widget);
+  GtkRequisition  request;
+  gint            size;
 
-  panel_itembar_size_request (widget, &request);
+  if (IS_HORIZONTAL (itembar))
+    {
+      size = itembar->size * itembar->nrows +
+        gtk_container_get_border_width (GTK_CONTAINER (widget)) * 2;
 
-  *minimum_height = request.height;
-  *natural_height = request.height;
+      *minimum_height = size;
+      *natural_height = size;
+    }
+  else
+    {
+      panel_itembar_size_request (widget, &request);
+      *minimum_height = request.height;
+      *natural_height = request.height;
+    }
 }
 
 
@@ -570,8 +594,8 @@ panel_itembar_size_allocate (GtkWidget     *widget,
 
           if (itembar->highlight_small)
             {
-              itembar->highlight_x = x;
-              itembar->highlight_y = y;
+              itembar->highlight_x = x - x_init;
+              itembar->highlight_y = y - y_init;
               if (IS_HORIZONTAL (itembar))
                 y += HIGHLIGHT_SIZE;
               else
@@ -579,16 +603,16 @@ panel_itembar_size_allocate (GtkWidget     *widget,
             }
           else if (IS_HORIZONTAL (itembar))
             {
-              itembar->highlight_x = (col_count > 0) ? x + row_max_size : x;
-              itembar->highlight_y = y_init;
+              itembar->highlight_x = ((col_count > 0) ? x + row_max_size : x) - x_init;
+              itembar->highlight_y = 0;
 
               x += HIGHLIGHT_SIZE;
               expand_len_avail -= HIGHLIGHT_SIZE;
             }
           else
             {
-              itembar->highlight_x = x_init;
-              itembar->highlight_y = (col_count > 0) ? y + row_max_size : y;
+              itembar->highlight_x = 0;
+              itembar->highlight_y = ((col_count > 0) ? y + row_max_size : y) - y_init;
 
               y += HIGHLIGHT_SIZE;
               expand_len_avail -= HIGHLIGHT_SIZE;
