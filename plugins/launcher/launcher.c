@@ -2065,8 +2065,8 @@ launcher_plugin_button_draw (GtkWidget      *widget,
   gtk_widget_get_allocation (widget, &allocation);
 
   size = allocation.width / 3;
-  x = allocation.x + padding.left;
-  y = allocation.y + padding.top;
+  x = padding.left;
+  y = padding.top;
   offset = size + padding.left + padding.right;
   angle = 1.5 * G_PI;
 
