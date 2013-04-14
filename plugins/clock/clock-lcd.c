@@ -302,8 +302,8 @@ xfce_clock_lcd_draw (GtkWidget *widget,
   offset_y = rint ((allocation.height - size) / 2.00);
 
   /* only allow positive values from the base point */
-  offset_x = allocation.x + MAX (0.00, offset_x);
-  offset_y = allocation.y + MAX (0.00, offset_y);
+  offset_x = MAX (0.00, offset_x);
+  offset_y = MAX (0.00, offset_y);
 
   cairo_push_group (cr);
 

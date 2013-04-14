@@ -497,8 +497,8 @@ xfce_clock_binary_draw (GtkWidget *widget,
   gtk_widget_get_allocation (widget, &alloc);
   alloc.width -= 1 + 2 * pad_x;
   alloc.height -= 1 + 2 * pad_y;
-  alloc.x += pad_x + 1;
-  alloc.y += pad_y + 1;
+  alloc.x = pad_x + 1;
+  alloc.y = pad_y + 1;
 
   /* align columns and fix rounding */
   cols = binary->true_binary ? 6 : (binary->show_seconds ? 6 : 4);

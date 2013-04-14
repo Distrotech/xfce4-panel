@@ -229,10 +229,6 @@ xfce_clock_analog_draw (GtkWidget *widget,
   yc = (allocation.height / 2.0);
   radius = MIN (xc, yc);
 
-  /* add the window offset */
-  xc += allocation.x;
-  yc += allocation.y;
-
   /* get the local time */
   time = clock_time_get_time (analog->time);
 
