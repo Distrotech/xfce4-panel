@@ -118,6 +118,9 @@ struct _SystrayManager
   /* _net_system_tray_opcode atom */
   Atom            opcode_atom;
 
+  /* _net_system_tray_message_data atom */
+  Atom            data_atom;
+
   /* _net_system_tray_s%d atom */
   GdkAtom         selection_atom;
 };
@@ -307,6 +310,7 @@ systray_manager_register (SystrayManager  *manager,
   GtkWidget           *invisible;
   guint32              timestamp;
   GdkAtom              opcode_atom;
+  GdkAtom              data_atom;
   XClientMessageEvent  xevent;
   Window               root_window;
 
@@ -372,7 +376,7 @@ systray_manager_register (SystrayManager  *manager,
       XSendEvent (GDK_DISPLAY_XDISPLAY (display), root_window,
                   False, StructureNotifyMask, (XEvent *)&xevent);
 
-      /* system_tray_request_dock and selectionclear */
+      /* system_tray_request_dock, system_tray_begin_message, system_tray_cancel_message and selectionclear */
       gdk_window_add_filter (gtk_widget_get_window (GTK_WIDGET (invisible)),
                              systray_manager_window_filter, manager);
 
@@ -380,16 +384,8 @@ systray_manager_register (SystrayManager  *manager,
       opcode_atom = gdk_atom_intern ("_NET_SYSTEM_TRAY_OPCODE", FALSE);
       manager->opcode_atom = gdk_x11_atom_to_xatom_for_display (display, opcode_atom);
 
-      /* system_tray_begin_message and system_tray_cancel_message */
-      // FIXME
-      //gdk_display_add_client_message_filter (display,
-      //    opcode_atom, systray_manager_handle_client_message_opcode, manager);
-
-      /* _net_system_tray_message_data */
-      // FIXME
-      //gdk_display_add_client_message_filter (display,
-      //    gdk_atom_intern ("_NET_SYSTEM_TRAY_MESSAGE_DATA", FALSE),
-      //    systray_manager_handle_client_message_message_data, manager);
+      data_atom = gdk_atom_intern ("_NET_SYSTEM_TRAY_MESSAGE_DATA", FALSE);
+      manager->data_atom = gdk_x11_atom_to_xatom_for_display (display, data_atom);
 
       panel_debug (PANEL_DEBUG_SYSTRAY, "registered manager on screen %d", screen_number);
     }
@@ -491,14 +487,11 @@ systray_manager_window_filter (GdkXEvent *xev,
 
   if (xevent->type == ClientMessage)
     {
-      if (xevent->xclient.message_type == manager->opcode_atom
-          && xevent->xclient.data.l[1] == XFCE_SYSTRAY_MANAGER_REQUEST_DOCK)
-        {
-          /* dock a tray icon */
-          systray_manager_handle_dock_request (manager, (XClientMessageEvent *) xevent);
+      if (xevent->xclient.message_type == manager->opcode_atom)
+        return systray_manager_handle_client_message_opcode (xevent, event, user_data);
 
-          return GDK_FILTER_REMOVE;
-        }
+      if (xevent->xclient.message_type == manager->data_atom)
+        return systray_manager_handle_client_message_message_data (xevent, event, user_data);
     }
   else if (xevent->type == SelectionClear)
     {
@@ -530,8 +523,8 @@ systray_manager_handle_client_message_opcode (GdkXEvent *xevent,
   switch (xev->data.l[1])
     {
     case XFCE_SYSTRAY_MANAGER_REQUEST_DOCK:
-        /* handled in systray_manager_window_filter () */
-        break;
+        systray_manager_handle_dock_request (manager, xev);
+        return GDK_FILTER_REMOVE;
 
     case XFCE_SYSTRAY_MANAGER_BEGIN_MESSAGE:
         systray_manager_handle_begin_message (manager, xev);
