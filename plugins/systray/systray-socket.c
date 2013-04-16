@@ -136,14 +136,13 @@ systray_socket_realize (GtkWidget *widget)
 
       socket->parent_relative_bg = FALSE;
     }
-  // FIXME
-  //else if (gtk_widget_get_visual (widget) ==
-  //         gdk_drawable_get_visual (GDK_DRAWABLE (gdk_window_get_parent (window))))
-  //  {
-  //    gdk_window_set_back_pixmap (window, NULL, TRUE);
-  //
-  //    socket->parent_relative_bg = TRUE;
-  //  }
+  else if (gtk_widget_get_visual (widget) ==
+           gdk_window_get_visual (gdk_window_get_parent (window)))
+    {
+      gdk_window_set_background_pattern (window, NULL);
+
+      socket->parent_relative_bg = TRUE;
+    }
   else
     {
       socket->parent_relative_bg = FALSE;
@@ -246,8 +245,7 @@ systray_socket_new (GdkScreen       *screen,
   XWindowAttributes  attr;
   gint               result;
   GdkVisual         *visual;
-  //GdkColormap       *colormap; //FIXME
-  //gboolean           release_colormap = FALSE;
+  gint               red_prec, green_prec, blue_prec;
 
   panel_return_val_if_fail (GDK_IS_SCREEN (screen), NULL);
 
@@ -267,37 +265,19 @@ systray_socket_new (GdkScreen       *screen,
   if (G_UNLIKELY (visual == NULL))
     return NULL;
 
-  /* get the correct colormap */
-  // FIXME
-  //if (visual == gdk_screen_get_rgb_visual (screen))
-  //  colormap = gdk_screen_get_rgb_colormap (screen);
-  //else if (visual == gdk_screen_get_rgba_visual (screen))
-  //  colormap = gdk_screen_get_rgba_colormap (screen);
-  //else if (visual == gdk_screen_get_system_visual (screen))
-  //  colormap = gdk_screen_get_system_colormap (screen);
-  //else
-  //  {
-  //    /* create custom colormap */
-  //    colormap = gdk_colormap_new (visual, FALSE);
-  //    release_colormap = TRUE;
-  //  }
-
   /* create a new socket */
   socket = g_object_new (XFCE_TYPE_SYSTRAY_SOCKET, NULL);
   socket->window = window;
   socket->is_composited = FALSE;
-  //gtk_widget_set_colormap (GTK_WIDGET (socket), colormap); //FIXME
-
-  /* release the custom colormap */
-  // FIXME
-  //if (release_colormap)
-  //  g_object_unref (G_OBJECT (colormap));
+  gtk_widget_set_visual (GTK_WIDGET (socket), visual);
 
   /* check if there is an alpha channel in the visual */
-  // FIXME
-  //if (visual->red_prec + visual->blue_prec + visual->green_prec < visual->depth
-  //    && gdk_display_supports_composite (gdk_screen_get_display (screen)))
-  //  socket->is_composited = TRUE;
+  gdk_visual_get_red_pixel_details (visual, NULL, NULL, &red_prec);
+  gdk_visual_get_green_pixel_details (visual, NULL, NULL, &green_prec);
+  gdk_visual_get_blue_pixel_details (visual, NULL, NULL, &blue_prec);
+  if (red_prec + blue_prec + green_prec < gdk_visual_get_depth (visual)
+      && gdk_display_supports_composite (gdk_screen_get_display (screen)))
+    socket->is_composited = TRUE;
 
   return GTK_WIDGET (socket);
 }
