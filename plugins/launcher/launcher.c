@@ -59,6 +59,12 @@ static void               launcher_plugin_set_property                  (GObject
                                                                          GParamSpec           *pspec);
 static void               launcher_plugin_construct                     (XfcePanelPlugin      *panel_plugin);
 static void               launcher_plugin_free_data                     (XfcePanelPlugin      *panel_plugin);
+static void               launcher_plugin_get_preferred_width           (GtkWidget            *widget,
+                                                                         gint                 *minimum_width,
+                                                                         gint                 *natural_width);
+static void               launcher_plugin_get_preferred_height          (GtkWidget            *widget,
+                                                                         gint                 *minimum_height,
+                                                                         gint                 *natural_height);
 static void               launcher_plugin_removed                       (XfcePanelPlugin      *panel_plugin);
 static gboolean           launcher_plugin_remote_event                  (XfcePanelPlugin      *panel_plugin,
                                                                          const gchar          *name,
@@ -67,8 +73,6 @@ static gboolean           launcher_plugin_save_delayed_timeout          (gpointe
 static void               launcher_plugin_save_delayed                  (LauncherPlugin       *plugin);
 static void               launcher_plugin_mode_changed                  (XfcePanelPlugin      *panel_plugin,
                                                                          XfcePanelPluginMode   mode);
-static gboolean           launcher_plugin_size_changed                  (XfcePanelPlugin      *panel_plugin,
-                                                                         gint                  size);
 static void               launcher_plugin_configure_plugin              (XfcePanelPlugin      *panel_plugin);
 static void               launcher_plugin_screen_position_changed       (XfcePanelPlugin      *panel_plugin,
                                                                          XfceScreenPosition    position);
@@ -259,16 +263,20 @@ launcher_plugin_class_init (LauncherPluginClass *klass)
 {
   GObjectClass         *gobject_class;
   XfcePanelPluginClass *plugin_class;
+  GtkWidgetClass       *gtkwidget_class;
 
   gobject_class = G_OBJECT_CLASS (klass);
   gobject_class->get_property = launcher_plugin_get_property;
   gobject_class->set_property = launcher_plugin_set_property;
 
+  gtkwidget_class = GTK_WIDGET_CLASS (klass);
+  gtkwidget_class->get_preferred_width = launcher_plugin_get_preferred_width;
+  gtkwidget_class->get_preferred_height = launcher_plugin_get_preferred_height;
+
   plugin_class = XFCE_PANEL_PLUGIN_CLASS (klass);
   plugin_class->construct = launcher_plugin_construct;
   plugin_class->free_data = launcher_plugin_free_data;
   plugin_class->mode_changed = launcher_plugin_mode_changed;
-  plugin_class->size_changed = launcher_plugin_size_changed;
   plugin_class->configure_plugin = launcher_plugin_configure_plugin;
   plugin_class->screen_position_changed = launcher_plugin_screen_position_changed;
   plugin_class->removed = launcher_plugin_removed;
@@ -879,10 +887,6 @@ launcher_plugin_set_property (GObject      *object,
       gtk_container_add (GTK_CONTAINER (plugin->button), plugin->child);
       gtk_widget_show (plugin->child);
 
-      /* update size */
-      launcher_plugin_size_changed (XFCE_PANEL_PLUGIN (plugin),
-          xfce_panel_plugin_get_size (XFCE_PANEL_PLUGIN (plugin)));
-
       /* update the button */
       launcher_plugin_button_update (plugin);
       break;
@@ -896,10 +900,6 @@ update_arrow:
 
       /* repack the widgets */
       launcher_plugin_pack_widgets (plugin);
-
-      /* update the plugin size */
-      launcher_plugin_size_changed (XFCE_PANEL_PLUGIN (plugin),
-          xfce_panel_plugin_get_size (XFCE_PANEL_PLUGIN (plugin)));
       break;
 
     default:
@@ -1244,76 +1244,74 @@ launcher_plugin_mode_changed (XfcePanelPlugin    *panel_plugin,
   /* update the arrow button */
   launcher_plugin_screen_position_changed (panel_plugin,
       xfce_panel_plugin_get_screen_position (panel_plugin));
-
-  /* update the plugin size */
-  launcher_plugin_size_changed (panel_plugin,
-      xfce_panel_plugin_get_size (panel_plugin));
 }
 
 
 
-static gboolean
-launcher_plugin_size_changed (XfcePanelPlugin *panel_plugin,
-                              gint             size)
+static void
+launcher_plugin_get_preferred_width (GtkWidget *widget,
+                                     gint      *minimum_width,
+                                     gint      *natural_width)
 {
-  LauncherPlugin    *plugin = XFCE_LAUNCHER_PLUGIN (panel_plugin);
-  gint               p_width, p_height;
-  gint               a_width, a_height;
-  gboolean           horizontal;
-  LauncherArrowType  arrow_position;
+  XfcePanelPlugin     *panel_plugin = XFCE_PANEL_PLUGIN (widget);
+  LauncherPlugin      *plugin = XFCE_LAUNCHER_PLUGIN (widget);
+  XfcePanelPluginMode  mode;
+  gint                 size;
 
-  /* initialize the plugin size */
-  size /= xfce_panel_plugin_get_nrows (panel_plugin);
-  p_width = p_height = size;
-  a_width = a_height = -1;
+  mode = xfce_panel_plugin_get_mode (XFCE_PANEL_PLUGIN (plugin));
 
-  /* add the arrow size */
-  if (gtk_widget_get_visible (plugin->arrow))
+  if (G_UNLIKELY (plugin->show_label && mode == XFCE_PANEL_PLUGIN_MODE_DESKBAR))
     {
-      /* if the panel is horizontal */
-      horizontal = !!(xfce_panel_plugin_get_orientation (panel_plugin) ==
-          GTK_ORIENTATION_HORIZONTAL);
-
-      /* translate default direction */
-      arrow_position = launcher_plugin_default_arrow_type (plugin);
-
-      switch (arrow_position)
-        {
-        case LAUNCHER_ARROW_NORTH:
-        case LAUNCHER_ARROW_SOUTH:
-          a_height = ARROW_BUTTON_SIZE;
-          if (horizontal)
-            p_width -= ARROW_BUTTON_SIZE;
-          else
-            p_height += ARROW_BUTTON_SIZE;
-          break;
-
-        case LAUNCHER_ARROW_EAST:
-        case LAUNCHER_ARROW_WEST:
-          a_width = ARROW_BUTTON_SIZE;
-          if (horizontal)
-            p_width += ARROW_BUTTON_SIZE;
-          else
-            p_height -= ARROW_BUTTON_SIZE;
-          break;
-
-        default:
-          /* the default position should never be returned */
-          panel_assert_not_reached ();
-          break;
-        }
-
-      /* set the arrow size */
-      gtk_widget_set_size_request (plugin->arrow, a_width, a_height);
+      size = xfce_panel_plugin_get_size (panel_plugin);
+    }
+  else if (G_UNLIKELY (plugin->show_label && mode == XFCE_PANEL_PLUGIN_MODE_HORIZONTAL))
+    {
+      gtk_widget_get_preferred_width (GTK_WIDGET (plugin->box), minimum_width, natural_width);
+      return;
+    }
+  else
+    {
+      size = xfce_panel_plugin_get_size (panel_plugin) / xfce_panel_plugin_get_nrows (panel_plugin);
     }
 
-  /* set the panel plugin size */
-  if (plugin->show_label)
-    gtk_widget_set_size_request (GTK_WIDGET (panel_plugin), -1, -1);
-  else
-    gtk_widget_set_size_request (GTK_WIDGET (panel_plugin), p_width, p_height);
+  if (minimum_width != NULL)
+    *minimum_width = size;
 
-  return TRUE;
+  if (natural_width != NULL)
+    *natural_width = size;
+}
+
+
+
+
+static void
+launcher_plugin_get_preferred_height (GtkWidget *widget,
+                                      gint      *minimum_height,
+                                      gint      *natural_height)
+{
+  XfcePanelPlugin     *panel_plugin = XFCE_PANEL_PLUGIN (widget);
+  LauncherPlugin      *plugin = XFCE_LAUNCHER_PLUGIN (widget);
+  XfcePanelPluginMode  mode;
+  gint                 size;
+
+  mode = xfce_panel_plugin_get_mode (XFCE_PANEL_PLUGIN (plugin));
+
+  if (G_UNLIKELY (plugin->show_label && mode != XFCE_PANEL_PLUGIN_MODE_HORIZONTAL))
+    {
+      gtk_widget_get_preferred_height (GTK_WIDGET (plugin->box), minimum_height, natural_height);
+      return;
+    }
+  else
+    {
+      size = xfce_panel_plugin_get_size (panel_plugin) / xfce_panel_plugin_get_nrows (panel_plugin);
+    }
+
+
+  if (minimum_height != NULL)
+    *minimum_height = size;
+
+  if (natural_height != NULL)
+    *natural_height = size;
 }
 
 
