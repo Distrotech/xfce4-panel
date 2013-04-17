@@ -1364,13 +1364,8 @@ xfce_panel_plugin_set_size (XfcePanelPluginProvider *provider,
                      plugin_signals[SIZE_CHANGED], 0, real_size, &handled);
 
       /* handle the size when not done by the plugin */
-      /* do not use set_size_request in Gtk3 (can only increase size) */
-#if GTK_CHECK_VERSION (3, 0, 0)
-      gtk_widget_queue_resize (GTK_WIDGET (plugin));
-#else
       if (!handled)
         gtk_widget_set_size_request (GTK_WIDGET (plugin), real_size, real_size);
-#endif
 
       g_object_notify_by_pspec (G_OBJECT (plugin), plugin_props[PROP_SIZE]);
     }
