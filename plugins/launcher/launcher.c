@@ -1258,14 +1258,13 @@ launcher_plugin_size_changed (XfcePanelPlugin *panel_plugin,
 {
   LauncherPlugin    *plugin = XFCE_LAUNCHER_PLUGIN (panel_plugin);
   gint               p_width, p_height;
-  gint               a_width, a_height;
+  gint               a_size;
   gboolean           horizontal;
   LauncherArrowType  arrow_position;
 
   /* initialize the plugin size */
   size /= xfce_panel_plugin_get_nrows (panel_plugin);
   p_width = p_height = size;
-  a_width = a_height = -1;
 
   /* add the arrow size */
   if (gtk_widget_get_visible (plugin->arrow))
@@ -1281,20 +1280,20 @@ launcher_plugin_size_changed (XfcePanelPlugin *panel_plugin,
         {
         case LAUNCHER_ARROW_NORTH:
         case LAUNCHER_ARROW_SOUTH:
-          a_height = ARROW_BUTTON_SIZE;
-          if (horizontal)
-            p_width -= ARROW_BUTTON_SIZE;
-          else
-            p_height += ARROW_BUTTON_SIZE;
+          if (!horizontal)
+            {
+              gtk_widget_get_preferred_height (plugin->arrow, NULL, &a_size);
+              p_height += a_size;
+            }
           break;
 
         case LAUNCHER_ARROW_EAST:
         case LAUNCHER_ARROW_WEST:
-          a_width = ARROW_BUTTON_SIZE;
           if (horizontal)
-            p_width += ARROW_BUTTON_SIZE;
-          else
-            p_height -= ARROW_BUTTON_SIZE;
+            {
+              gtk_widget_get_preferred_width (plugin->arrow, NULL, &a_size);
+              p_width += a_size;
+            }
           break;
 
         default:
@@ -1302,9 +1301,6 @@ launcher_plugin_size_changed (XfcePanelPlugin *panel_plugin,
           panel_assert_not_reached ();
           break;
         }
-
-      /* set the arrow size */
-      gtk_widget_set_size_request (plugin->arrow, a_width, a_height);
     }
 
   /* set the panel plugin size */
