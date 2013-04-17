@@ -84,12 +84,8 @@ static void      directory_menu_plugin_set_property         (GObject            
 static void      directory_menu_plugin_construct            (XfcePanelPlugin     *panel_plugin);
 static void      directory_menu_plugin_free_file_patterns   (DirectoryMenuPlugin *plugin);
 static void      directory_menu_plugin_free_data            (XfcePanelPlugin     *panel_plugin);
-static void      directory_menu_plugin_get_preferred_width  (GtkWidget           *widget,
-                                                             gint                *minimum_width,
-                                                             gint                *natural_width);
-static void      directory_menu_plugin_get_preferred_height (GtkWidget           *widget,
-                                                             gint                *minimum_height,
-                                                             gint                *natural_height);
+static gboolean  directory_menu_plugin_size_changed         (XfcePanelPlugin     *panel_plugin,
+                                                             gint                 size);
 static void      directory_menu_plugin_configure_plugin     (XfcePanelPlugin     *panel_plugin);
 static gboolean  directory_menu_plugin_remote_event         (XfcePanelPlugin     *panel_plugin,
                                                              const gchar         *name,
@@ -113,19 +109,15 @@ directory_menu_plugin_class_init (DirectoryMenuPluginClass *klass)
 {
   XfcePanelPluginClass *plugin_class;
   GObjectClass         *gobject_class;
-  GtkWidgetClass       *gtkwidget_class;
 
   gobject_class = G_OBJECT_CLASS (klass);
   gobject_class->get_property = directory_menu_plugin_get_property;
   gobject_class->set_property = directory_menu_plugin_set_property;
 
-  gtkwidget_class = GTK_WIDGET_CLASS (klass);
-  gtkwidget_class->get_preferred_width = directory_menu_plugin_get_preferred_width;
-  gtkwidget_class->get_preferred_height = directory_menu_plugin_get_preferred_height;
-
   plugin_class = XFCE_PANEL_PLUGIN_CLASS (klass);
   plugin_class->construct = directory_menu_plugin_construct;
   plugin_class->free_data = directory_menu_plugin_free_data;
+  plugin_class->size_changed = directory_menu_plugin_size_changed;
   plugin_class->configure_plugin = directory_menu_plugin_configure_plugin;
   plugin_class->remote_event = directory_menu_plugin_remote_event;
 
@@ -352,41 +344,15 @@ directory_menu_plugin_free_data (XfcePanelPlugin *panel_plugin)
 
 
 
-static void
-directory_menu_plugin_get_preferred_width (GtkWidget *widget,
-                                           gint      *minimum_width,
-                                           gint      *natural_width)
+static gboolean
+directory_menu_plugin_size_changed (XfcePanelPlugin *panel_plugin,
+                                    gint             size)
 {
-  XfcePanelPlugin *panel_plugin = XFCE_PANEL_PLUGIN (widget);
-  gint             size;
+  /* force a square button */
+  size /= xfce_panel_plugin_get_nrows (panel_plugin);
+  gtk_widget_set_size_request (GTK_WIDGET (panel_plugin), size, size);
 
-  size = xfce_panel_plugin_get_size (panel_plugin) / xfce_panel_plugin_get_nrows (panel_plugin);
-
-  if (minimum_width != NULL)
-    *minimum_width = size;
-
-  if (natural_width != NULL)
-    *natural_width = size;
-}
-
-
-
-
-static void
-directory_menu_plugin_get_preferred_height (GtkWidget *widget,
-                                            gint      *minimum_height,
-                                            gint      *natural_height)
-{
-  XfcePanelPlugin *panel_plugin = XFCE_PANEL_PLUGIN (widget);
-  gint             size;
-
-  size = xfce_panel_plugin_get_size (panel_plugin) / xfce_panel_plugin_get_nrows (panel_plugin);
-
-  if (minimum_height != NULL)
-    *minimum_height = size;
-
-  if (natural_height != NULL)
-    *natural_height = size;
+  return TRUE;
 }
 
 
