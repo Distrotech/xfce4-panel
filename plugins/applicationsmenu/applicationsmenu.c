@@ -442,7 +442,6 @@ applications_menu_plugin_size_changed (XfcePanelPlugin *panel_plugin,
 {
   ApplicationsMenuPlugin *plugin = XFCE_APPLICATIONS_MENU_PLUGIN (panel_plugin);
   gint                    row_size;
-  GtkStyle               *style;
   XfcePanelPluginMode     mode;
   GtkRequisition          label_size;
   GtkOrientation          orientation;
@@ -453,6 +452,8 @@ applications_menu_plugin_size_changed (XfcePanelPlugin *panel_plugin,
   GdkScreen              *screen;
   GtkIconTheme           *icon_theme = NULL;
   gchar                  *icon_name;
+  GtkStyleContext        *ctx;
+  GtkBorder               padding, border;
 
   gtk_box_set_child_packing (GTK_BOX (plugin->box), plugin->icon,
                              !plugin->show_button_title,
@@ -467,13 +468,16 @@ applications_menu_plugin_size_changed (XfcePanelPlugin *panel_plugin,
     orientation = GTK_ORIENTATION_VERTICAL;
 
   row_size = size / xfce_panel_plugin_get_nrows (panel_plugin);
-  style = gtk_widget_get_style (plugin->button);
-  border_thickness = 2 * MAX (style->xthickness, style->ythickness) + 2;
+  /* style thickness */
+  ctx = gtk_widget_get_style_context (plugin->button);
+  gtk_style_context_get_padding (ctx, gtk_widget_get_state_flags (plugin->button), &padding);
+  gtk_style_context_get_border (ctx, gtk_widget_get_state_flags (plugin->button), &border);
+  border_thickness = MAX (padding.left + padding.right + border.left + border.right,
+                          padding.top + padding.bottom + border.top + border.bottom);
 
   /* arbitrary limit on non-square icon width in horizontal panel */
   icon_width_max = (mode == XFCE_PANEL_PLUGIN_MODE_HORIZONTAL) ?
-    6 * row_size - border_thickness :
-    size - border_thickness;
+    6 * row_size - border_thickness : size - border_thickness;
   icon_height_max = row_size - border_thickness;
 
   screen = gtk_widget_get_screen (GTK_WIDGET (plugin));
@@ -500,7 +504,7 @@ applications_menu_plugin_size_changed (XfcePanelPlugin *panel_plugin,
     {
       /* check if the label (minimum size) fits next to the icon */
       gtk_widget_get_preferred_size (GTK_WIDGET (plugin->label), &label_size, NULL);
-      if (label_size.width <= size - border_thickness - icon_width)
+      if (label_size.width <= size - icon_width - 2 - border_thickness)
         orientation = GTK_ORIENTATION_HORIZONTAL;
     }
 
