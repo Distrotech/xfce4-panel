@@ -196,6 +196,8 @@ panel_base_window_class_init (PanelBaseWindowClass *klass)
 static void
 panel_base_window_init (PanelBaseWindow *window)
 {
+  GtkStyleContext *context;
+
   window->priv = G_TYPE_INSTANCE_GET_PRIVATE (window, PANEL_TYPE_BASE_WINDOW, PanelBaseWindowPrivate);
 
   window->is_composited = FALSE;
@@ -216,6 +218,10 @@ panel_base_window_init (PanelBaseWindow *window)
 
   /* set colormap */
   panel_base_window_screen_changed (GTK_WIDGET (window), NULL);
+
+  /* set the panel class */
+  context = gtk_widget_get_style_context (GTK_WIDGET (window));
+  gtk_style_context_add_class (context, "panel");
 }
 
 
