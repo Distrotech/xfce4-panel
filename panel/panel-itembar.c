@@ -307,9 +307,6 @@ panel_itembar_finalize (GObject *object)
   (*G_OBJECT_CLASS (panel_itembar_parent_class)->finalize) (object);
 }
 
-#define CHILD_LENGTH(child_req, itembar) \
-  (IS_HORIZONTAL (itembar) ? child_req.width : child_req.height)
-
 static void
 panel_itembar_get_preferred_length (GtkWidget      *widget,
                                     gint           *minimum_length,
@@ -318,18 +315,19 @@ panel_itembar_get_preferred_length (GtkWidget      *widget,
   PanelItembar      *itembar = PANEL_ITEMBAR (widget);
   GSList            *li;
   PanelItembarChild *child;
-  GtkRequisition     child_req, child_req_min;
   gint               border_width;
-  gint               row_max_size;
+  gint               row_max_size, row_max_size_min;
   gint               col_count;
-  gint               total_len;
-  gint               child_len;
+  gint               total_len, total_len_min;
+  gint               child_len, child_len_min;
 
   /* total length we request */
   total_len = 0;
+  total_len_min = 0;
 
   /* counter for small child packing */
   row_max_size = 0;
+  row_max_size_min = 0;
   col_count = 0;
 
   for (li = itembar->children; li != NULL; li = li->next)
@@ -342,20 +340,23 @@ panel_itembar_get_preferred_length (GtkWidget      *widget,
             continue;
 
           /* get the child's size request */
-          gtk_widget_get_preferred_size (child->widget, &child_req_min, &child_req);
+          if (IS_HORIZONTAL (itembar))
+            gtk_widget_get_preferred_width (child->widget, &child_len_min, &child_len);
+          else
+            gtk_widget_get_preferred_height (child->widget, &child_len_min, &child_len);
 
           /* check if the small child fits in a row */
           if (child->option == CHILD_OPTION_SMALL
               && itembar->nrows > 1)
             {
-              child_len = CHILD_LENGTH (child_req, itembar);
-
               /* make sure we have enough space for all the children on the row.
                * so add the difference between the largest child in this column */
               if (child_len > row_max_size)
                 {
                   total_len += child_len - row_max_size;
+                  total_len_min += child_len_min - row_max_size_min;
                   row_max_size = child_len;
+                  row_max_size_min = child_len_min;
                 }
 
               /* reset to new row if all columns are filled */
@@ -363,28 +364,36 @@ panel_itembar_get_preferred_length (GtkWidget      *widget,
                 {
                   col_count = 0;
                   row_max_size = 0;
+                  row_max_size_min = 0;
                 }
             }
           else /* expanding or normal item */
             {
-              total_len += CHILD_LENGTH (child_req, itembar);
+              total_len += child_len;
+              total_len_min += child_len_min;
 
               /* reset column packing */
               col_count = 0;
               row_max_size = 0;
+              row_max_size_min = 0;
             }
         }
       else
         {
           /* this noop item is the dnd position */
           total_len += HIGHLIGHT_SIZE;
+          total_len_min += HIGHLIGHT_SIZE;
         }
     }
 
   /* return the total size */
   border_width = gtk_container_get_border_width (GTK_CONTAINER (widget)) * 2;
-  *natural_length = total_len + border_width;
-  *minimum_length = total_len + border_width;
+
+  if (natural_length != NULL)
+    *natural_length = total_len + border_width;
+
+  if (minimum_length != NULL)
+    *minimum_length = total_len + border_width;
 }
 
 
@@ -406,8 +415,11 @@ panel_itembar_get_preferred_width (GtkWidget *widget,
       size = itembar->size * itembar->nrows +
         gtk_container_get_border_width (GTK_CONTAINER (widget)) * 2;
 
-      *minimum_width = size;
-      *natural_width = size;
+      if (minimum_width != NULL)
+        *minimum_width = size;
+
+      if (natural_width != NULL)
+        *natural_width = size;
     }
 }
 
@@ -426,8 +438,11 @@ panel_itembar_get_preferred_height (GtkWidget *widget,
       size = itembar->size * itembar->nrows +
         gtk_container_get_border_width (GTK_CONTAINER (widget)) * 2;
 
-      *minimum_height = size;
-      *natural_height = size;
+      if (minimum_height != NULL)
+        *minimum_height = size;
+
+      if (natural_height != NULL)
+        *natural_height = size;
     }
   else
     {
@@ -444,7 +459,6 @@ panel_itembar_size_allocate (GtkWidget     *widget,
   PanelItembar      *itembar = PANEL_ITEMBAR (widget);
   GSList            *lp, *ltemp;
   PanelItembarChild *child;
-  GtkRequisition     child_req;
   GtkAllocation      child_alloc;
   gint               border_width;
   gint               expand_len_avail, expand_len_req;
@@ -454,7 +468,7 @@ panel_itembar_size_allocate (GtkWidget     *widget,
   gint               x_init, y_init;
   gboolean           expand_children_fit;
   gint               new_len;
-  gint               child_len;
+  gint               child_len, child_len_min;
   gint               row_max_size;
   gint               col_count;
   gint               rows_size;
@@ -491,9 +505,10 @@ panel_itembar_size_allocate (GtkWidget     *widget,
           if (!gtk_widget_get_visible (child->widget))
             continue;
 
-          gtk_widget_get_preferred_size (child->widget, &child_req, NULL);
-
-          child_len = CHILD_LENGTH (child_req, itembar);
+          if (IS_HORIZONTAL (itembar))
+            gtk_widget_get_preferred_width (child->widget, &child_len_min, &child_len);
+          else
+            gtk_widget_get_preferred_height (child->widget, &child_len_min, &child_len);
 
           if (G_UNLIKELY (child->option == CHILD_OPTION_SMALL
                           && itembar->nrows > 1))
@@ -608,9 +623,10 @@ panel_itembar_size_allocate (GtkWidget     *widget,
       if (!gtk_widget_get_visible (child->widget))
         continue;
 
-      gtk_widget_get_preferred_size (child->widget, &child_req, NULL);
-
-      child_len = CHILD_LENGTH (child_req, itembar);
+      if (IS_HORIZONTAL (itembar))
+        gtk_widget_get_preferred_width (child->widget, &child_len_min, &child_len);
+      else
+        gtk_widget_get_preferred_height (child->widget, &child_len_min, &child_len);
 
       if (G_UNLIKELY (!expand_children_fit && child->option == CHILD_OPTION_EXPAND))
         {
