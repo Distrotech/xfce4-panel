@@ -1192,8 +1192,11 @@ panel_window_get_preferred_width (GtkWidget *widget,
       n_width = CLAMP (n_width, length, window->area.width);
     }
 
-  *minimum_width = m_width;
-  *natural_width = n_width;
+  if (minimum_width != NULL)
+    *minimum_width = m_width;
+
+  if (natural_width != NULL)
+    *natural_width = n_width;
 }
 
 
@@ -1244,8 +1247,11 @@ panel_window_get_preferred_height (GtkWidget *widget,
       n_height = CLAMP (n_height, length, window->area.height);
     }
 
-  *minimum_height = m_height;
-  *natural_height = n_height;
+  if (minimum_height != NULL)
+    *minimum_height = m_height;
+
+  if (natural_height != NULL)
+    *natural_height = n_height;
 }
 
 
