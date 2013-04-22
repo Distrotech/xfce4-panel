@@ -517,6 +517,7 @@ window_menu_plugin_size_changed (XfcePanelPlugin *panel_plugin,
                                  gint             size)
 {
   WindowMenuPlugin *plugin = XFCE_WINDOW_MENU_PLUGIN (panel_plugin);
+  gint              button_size;
 
   if (plugin->button_style == BUTTON_STYLE_ICON)
     {
@@ -527,7 +528,17 @@ window_menu_plugin_size_changed (XfcePanelPlugin *panel_plugin,
   else
     {
       /* set the size of the arrow button */
-      gtk_widget_set_size_request (GTK_WIDGET (plugin), -1, -1);
+      if (xfce_panel_plugin_get_orientation (panel_plugin) ==
+              GTK_ORIENTATION_HORIZONTAL)
+        {
+          gtk_widget_get_preferred_width (plugin->button, NULL, &button_size);
+          gtk_widget_set_size_request (GTK_WIDGET (plugin), button_size, -1);
+        }
+      else
+        {
+          gtk_widget_get_preferred_height (plugin->button, NULL, &button_size);
+          gtk_widget_set_size_request (GTK_WIDGET (plugin), -1, button_size);
+        }
     }
 
   return TRUE;
