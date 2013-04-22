@@ -154,10 +154,6 @@ tasklist_plugin_construct (XfcePanelPlugin *panel_plugin)
   /* show configure */
   xfce_panel_plugin_menu_show_configure (XFCE_PANEL_PLUGIN (plugin));
 
-  /* expand the plugin */
-  /* xfce_panel_plugin_set_expand (panel_plugin, FALSE); */
-  xfce_panel_plugin_set_shrink (panel_plugin, TRUE);
-
   /* bind all properties */
   panel_properties_bind (NULL, G_OBJECT (plugin->tasklist),
                          xfce_panel_plugin_get_property_base (panel_plugin),
@@ -241,7 +237,8 @@ tasklist_plugin_configure_plugin (XfcePanelPlugin *panel_plugin)
   panel_return_if_fail (G_IS_OBJECT (object)); \
   g_object_bind_property (G_OBJECT (plugin->tasklist), (name), \
                           G_OBJECT (object), (property), \
-                          G_BINDING_SYNC_CREATE);
+                          G_BINDING_BIDIRECTIONAL \
+                          | G_BINDING_SYNC_CREATE);
 
 #define TASKLIST_DIALOG_BIND_INV(name, property) \
   object = gtk_builder_get_object (builder, (name)); \
