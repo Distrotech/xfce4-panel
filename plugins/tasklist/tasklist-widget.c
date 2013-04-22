@@ -260,8 +260,9 @@ static void               xfce_tasklist_set_property                     (GObjec
                                                                           const GValue         *value,
                                                                           GParamSpec           *pspec);
 static void               xfce_tasklist_finalize                         (GObject              *object);
-static void               xfce_tasklist_size_request                     (GtkWidget            *widget,
-                                                                          GtkRequisition       *requisition);
+static void               xfce_tasklist_get_preferred_length             (GtkWidget            *widget,
+                                                                          gint                 *minimum_length,
+                                                                          gint                 *natural_length);
 static void               xfce_tasklist_get_preferred_width              (GtkWidget            *widget,
                                                                           gint                 *minimum_width,
                                                                           gint                 *natural_width);
@@ -762,15 +763,20 @@ xfce_tasklist_get_preferred_width (GtkWidget *widget,
                                    gint      *minimum_width,
                                    gint      *natural_width)
 {
-  GtkRequisition     requisition;
+  XfceTasklist *tasklist = XFCE_TASKLIST (widget);
 
-  xfce_tasklist_size_request (widget, &requisition);
+  if (xfce_tasklist_horizontal (tasklist))
+    {
+      xfce_tasklist_get_preferred_length (widget, minimum_width, natural_width);
+    }
+  else
+    {
+      if (minimum_width != NULL)
+        *minimum_width = tasklist->size;
 
-  if (minimum_width != NULL)
-    *minimum_width = requisition.width;
-
-  if (natural_width != NULL)
-    *natural_width = requisition.width;
+      if (natural_width != NULL)
+        *natural_width = tasklist->size;
+    }
 }
 
 
@@ -780,22 +786,28 @@ xfce_tasklist_get_preferred_height (GtkWidget *widget,
                                     gint      *minimum_height,
                                     gint      *natural_height)
 {
-  GtkRequisition     requisition;
+  XfceTasklist *tasklist = XFCE_TASKLIST (widget);
 
-  xfce_tasklist_size_request (widget, &requisition);
+  if (!xfce_tasklist_horizontal (tasklist))
+    {
+      xfce_tasklist_get_preferred_length (widget, minimum_height, natural_height);
+    }
+  else
+    {
+      if (minimum_height != NULL)
+        *minimum_height = tasklist->size;
 
-  if (minimum_height != NULL)
-    *minimum_height = requisition.height;
-
-  if (natural_height != NULL)
-    *natural_height = requisition.height;
+      if (natural_height != NULL)
+        *natural_height = tasklist->size;
+    }
 }
 
 
 
 static void
-xfce_tasklist_size_request (GtkWidget      *widget,
-                            GtkRequisition *requisition)
+xfce_tasklist_get_preferred_length (GtkWidget *widget,
+                                    gint      *minimum_length,
+                                    gint      *natural_length)
 {
   XfceTasklist      *tasklist = XFCE_TASKLIST (widget);
   gint               rows, cols;
@@ -851,22 +863,15 @@ xfce_tasklist_size_request (GtkWidget      *widget,
         length = cols * DEFAULT_MAX_BUTTON_LENGTH;
     }
 
-  /* set the requested sizes */
   if (xfce_tasklist_deskbar (tasklist) && tasklist->show_labels)
-    {
-      requisition->height = child_height * n_windows;
-      requisition->width = tasklist->size;
-    }
-  else if (xfce_tasklist_horizontal (tasklist))
-    {
-      requisition->width = length;
-      requisition->height = tasklist->size;
-    }
-  else
-    {
-      requisition->width = tasklist->size;
-      requisition->height = length;
-    }
+    length = child_height * n_windows;
+
+  /* set the requested sizes */
+  if (natural_length != NULL)
+    *natural_length = length;
+
+  if (minimum_length != NULL)
+    *minimum_length = (n_windows == 0) ? 0 : ARROW_BUTTON_SIZE;
 }
 
 
