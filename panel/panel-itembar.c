@@ -541,8 +541,8 @@ panel_itembar_size_allocate (GtkWidget     *widget,
                 {
                   expand_len_avail -= child_len;
 
-                  if (child->option == CHILD_OPTION_SHRINK)
-                    shrink_len_avail += child_len;
+                  if (child_len_min < child_len)
+                    shrink_len_avail += (child_len - child_len_min);
                 }
             }
         }
@@ -639,15 +639,15 @@ panel_itembar_size_allocate (GtkWidget     *widget,
 
           child_len = new_len;
         }
-      else if (child->option == CHILD_OPTION_SHRINK
+      else if (child_len_min < child_len
                && shrink_len_req > 0)
         {
           /* equally shrink all shrinking plugins */
           panel_assert (shrink_len_avail > 0);
-          new_len = shrink_len_req * child_len / shrink_len_avail;
-
+          new_len = MIN (shrink_len_req * (child_len - child_len_min) / shrink_len_avail,
+                         child_len - child_len_min);
           shrink_len_req -= new_len;
-          shrink_len_avail -= child_len;
+          shrink_len_avail -= (child_len - child_len_min);
 
           child_len -= new_len;
         }
