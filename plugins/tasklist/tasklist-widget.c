@@ -489,7 +489,7 @@ xfce_tasklist_class_init (XfceTasklistClass *klass)
                                    g_param_spec_boolean ("middle-button-close",
                                                          NULL, NULL,
                                                          FALSE,
-                                                         EXO_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   gtk_widget_class_install_style_property (gtkwidget_class,
                                            g_param_spec_int ("max-button-length",
@@ -2792,8 +2792,8 @@ xfce_tasklist_button_button_release_event (GtkWidget         *button,
       && event->button == 2
       && child->tasklist->middle_button_close
       && !(event->x == 0 && event->y == 0) /* 0,0 = outside the widget in Gtk */
-      && event->x >= 0 && event->x < button->allocation.width
-      && event->y >= 0 && event->y < button->allocation.height)
+      && event->x >= 0 && event->x < allocation.width
+      && event->y >= 0 && event->y < allocation.height)
     {
       wnck_window_close (child->window, event->time);
       return TRUE;
