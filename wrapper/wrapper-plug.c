@@ -125,6 +125,7 @@ wrapper_plug_init (WrapperPlug *plug)
   /* set the panel class */
   context = gtk_widget_get_style_context (GTK_WIDGET (plug));
   gtk_style_context_add_class (context, "panel");
+  gtk_style_context_add_class (context, "xfce4-panel");
 #endif
 }
 

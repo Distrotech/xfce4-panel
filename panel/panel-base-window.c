@@ -222,6 +222,7 @@ panel_base_window_init (PanelBaseWindow *window)
   /* set the panel class */
   context = gtk_widget_get_style_context (GTK_WIDGET (window));
   gtk_style_context_add_class (context, "panel");
+  gtk_style_context_add_class (context, "xfce4-panel");
 }
 
 
